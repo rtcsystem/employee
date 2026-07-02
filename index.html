@@ -1,0 +1,1821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>RTC Employee Portal</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<script>
+tailwind.config={theme:{extend:{colors:{maroon:{50:'#fff0f0',100:'#ffd6d6',200:'#ffadad',300:'#ff7070',400:'#e63f3f',500:'#c82020',600:'#a01414',700:'#7b0019',800:'#5a0014',900:'#3d000d'}},fontFamily:{sans:['Inter','ui-sans-serif']}}}};
+</script>
+<style>
+*,*::before,*::after{box-sizing:border-box;}
+body{font-family:'Inter',sans-serif;background:#f3f4f6;}
+
+/* Animations */
+.fade-in{animation:fadeIn .3s ease;}
+.slide-up{animation:slideUp .35s ease;}
+.slide-right{animation:slideRight .3s ease;}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideRight{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-thumb{background:#7b0019;border-radius:3px}
+
+/* Shimmer */
+.shimmer{background:linear-gradient(90deg,#f0f0f0 25%,#e4e4e4 50%,#f0f0f0 75%);background-size:200% 100%;animation:shim 1.3s infinite;border-radius:6px;}
+@keyframes shim{to{background-position:-200% 0}}
+
+/* Spinner */
+.spinner{border:3px solid rgba(123,0,25,.15);border-top-color:#7b0019;border-radius:50%;width:24px;height:24px;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Toast */
+#toast-container{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px;}
+.toast{min-width:260px;max-width:340px;padding:11px 16px;border-radius:10px;font-size:13px;font-weight:500;box-shadow:0 4px 20px rgba(0,0,0,.12);display:flex;align-items:center;gap:9px;animation:slideUp .3s ease;}
+.toast.success{background:#fff;border-left:4px solid #16a34a;color:#15803d;}
+.toast.error{background:#fff;border-left:4px solid #dc2626;color:#b91c1c;}
+.toast.info{background:#fff;border-left:4px solid #7b0019;color:#7b0019;}
+
+/* Nav */
+.nav-link{transition:background .15s;}
+.nav-link:hover{background:rgba(255,255,255,.1);}
+.nav-link.active{background:rgba(255,255,255,.18);font-weight:600;}
+
+/* Auth */
+.auth-tab{transition:all .2s;border-bottom:2px solid transparent;cursor:pointer;}
+.auth-tab.active{border-bottom-color:#7b0019;color:#7b0019;font-weight:700;}
+.auth-input{width:100%;padding:10px 14px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;outline:none;transition:border .2s,box-shadow .2s;}
+.auth-input:focus{border-color:#7b0019;box-shadow:0 0 0 3px rgba(123,0,25,.1);}
+.auth-btn{width:100%;padding:11px;background:#7b0019;color:#fff;font-weight:700;font-size:14px;border-radius:10px;border:none;cursor:pointer;transition:background .2s;display:flex;align-items:center;justify-content:center;gap:8px;}
+.auth-btn:hover{background:#5a0014;}
+.auth-btn:disabled{opacity:.6;cursor:not-allowed;}
+
+/* Post cards */
+.post-card{background:#fff;border-radius:16px;box-shadow:0 1px 6px rgba(0,0,0,.07);overflow:hidden;transition:box-shadow .2s;}
+.post-card:hover{box-shadow:0 4px 20px rgba(0,0,0,.1);}
+.post-type-memo{border-left:4px solid #7b0019;}
+.post-type-event{border-left:4px solid #2563eb;}
+.post-type-announcement{border-left:4px solid #d97706;}
+.post-type-birthday{border-left:4px solid #db2777;}
+.post-pinned{border-top:2px solid #7b0019;}
+.comments-section{display:none;}
+.comments-section.open{display:block;}
+.like-btn.liked svg{fill:#7b0019;stroke:#7b0019;}
+.file-card{transition:transform .18s,box-shadow .18s;}
+.file-card:hover{transform:translateY(-3px);box-shadow:0 8px 28px rgba(123,0,25,.13);}
+#drop-zone.drag-over{border-color:#7b0019;background:#fff0f0;}
+
+/* Profile panel */
+#profile-panel{transform:translateX(100%);transition:transform .3s ease;}
+#profile-panel.open{transform:translateX(0);}
+.prof-tab{border-bottom:2px solid transparent;padding:8px 16px;font-size:13px;font-weight:600;color:#9ca3af;cursor:pointer;transition:all .2s;}
+.prof-tab.active{border-bottom-color:#7b0019;color:#7b0019;}
+
+/* Reply thread */
+.reply-thread{margin-left:24px;border-left:2px solid #fce4ec;padding-left:10px;}
+
+/* Folder contents row */
+.folder-file-row:hover{background:#fff8f8;}
+</style>
+</head>
+<body class="min-h-screen">
+
+<!-- ══════════════ GLOBAL LOADER ══════════════ -->
+<div id="global-loader" class="fixed inset-0 z-50 flex flex-col items-center justify-center" style="background:linear-gradient(135deg,#7b0019,#3d000d)">
+  <div class="text-white text-center slide-up">
+    <div class="text-5xl font-black tracking-tight mb-1">RTC</div>
+    <div class="text-xs opacity-50 tracking-widest uppercase mb-8">Employee Portal</div>
+    <div class="spinner mx-auto" style="border-color:rgba(255,255,255,.2);border-top-color:#fff;width:30px;height:30px;"></div>
+  </div>
+</div>
+
+<!-- ══════════════ AUTH SCREEN ══════════════ -->
+<div id="auth-screen" class="hidden min-h-screen flex" style="background:linear-gradient(135deg,#7b0019 0%,#3d000d 100%)">
+
+  <!-- Left Branding Panel -->
+  <div class="hidden lg:flex flex-col justify-between w-5/12 p-12 text-white">
+    <div>
+      <div class="text-5xl font-black tracking-tight">RTC</div>
+      <div class="text-sm opacity-50 tracking-widest uppercase mt-1">Ramesh Trading Corporation</div>
+    </div>
+    <div>
+      <h2 class="text-3xl font-bold leading-snug mb-4">RTC<br/>Employee Portal</h2>
+      <p class="text-white/60 text-sm leading-relaxed max-w-xs">Your all-in-one hub for company memos, updates, documents, and room booking.</p>
+      <div class="mt-8 flex flex-col gap-3">
+        <div class="flex items-center gap-3 text-sm text-white/70"><span class="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></span> Document Management</div>
+        <div class="flex items-center gap-3 text-sm text-white/70"><span class="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg></span> Company News Feed</div>
+        <div class="flex items-center gap-3 text-sm text-white/70"><span class="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></span> Room &amp; Facility Booking</div>
+        <div class="flex items-center gap-3 text-sm text-white/70"><span class="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 10-8 0v4h8z"/></svg></span> Role-Based Access</div>
+      </div>
+    </div>
+    <div class="text-white/30 text-xs">© 2026 Ramesh Trading Corporation</div>
+  </div>
+
+  <!-- Right Form Panel -->
+  <div class="flex-1 flex items-center justify-center p-6">
+    <div class="w-full max-w-md">
+
+      <!-- Mobile Logo -->
+      <div class="lg:hidden text-center mb-6">
+        <div class="text-4xl font-black text-white">RTC</div>
+        <div class="text-xs text-white/50 tracking-widest uppercase">Employee Portal</div>
+      </div>
+
+      <div class="bg-white rounded-3xl shadow-2xl overflow-hidden">
+
+        <!-- Auth Tabs -->
+        <div class="flex border-b border-gray-100" id="auth-tabs-bar">
+          <button class="auth-tab active flex-1 py-4 text-sm text-gray-500" onclick="switchAuthTab('emp')">👤 Employee</button>
+          <button class="auth-tab flex-1 py-4 text-sm text-gray-500" onclick="switchAuthTab('admin')">🛡️ Admin</button>
+        </div>
+
+        <div class="p-7">
+
+          <!-- ── EMPLOYEE LOGIN ── -->
+          <div id="view-emp-login" class="auth-view">
+            <h2 class="text-xl font-bold text-gray-800 mb-1">Welcome back</h2>
+            <p class="text-sm text-gray-400 mb-6">Sign in with your company account</p>
+            <form onsubmit="doEmpLogin(event)" class="space-y-4">
+              <div>
+                <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Company Email</label>
+                <input id="emp-email" type="email" placeholder="you@rameshtrading.com.ph" class="auth-input" required autocomplete="email"/>
+              </div>
+              <div>
+                <div class="flex justify-between items-center mb-1.5">
+                  <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Password</label>
+                  <button type="button" onclick="showView('view-forgot-1')" class="text-xs text-maroon-700 font-semibold hover:underline">Forgot password?</button>
+                </div>
+                <div class="relative">
+                  <input id="emp-password" type="password" placeholder="••••••" class="auth-input pr-10" required autocomplete="current-password"/>
+                  <button type="button" onclick="togglePw('emp-password',this)" class="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600 text-sm">👁</button>
+                </div>
+              </div>
+              <button type="submit" class="auth-btn mt-2" id="emp-login-btn">Sign In</button>
+            </form>
+            <p class="text-center text-sm text-gray-400 mt-5">Don't have an account? <button onclick="showView('view-register')" class="text-maroon-700 font-semibold hover:underline">Register</button></p>
+          </div>
+
+          <!-- ── ADMIN LOGIN ── -->
+          <div id="view-admin-login" class="auth-view hidden">
+            <h2 class="text-xl font-bold text-gray-800 mb-1">Admin Access</h2>
+            <p class="text-sm text-gray-400 mb-6">Sign in with your administrator credentials</p>
+            <form onsubmit="doAdminLogin(event)" class="space-y-4">
+              <div>
+                <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Admin Email</label>
+                <input id="admin-email" type="email" placeholder="admin@rameshtrading.com.ph" class="auth-input" required/>
+              </div>
+              <div>
+                <div class="flex justify-between items-center mb-1.5">
+                  <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Password</label>
+                  <button type="button" onclick="showView('view-forgot-1')" class="text-xs text-maroon-700 font-semibold hover:underline">Forgot password?</button>
+                </div>
+                <div class="relative">
+                  <input id="admin-password" type="password" placeholder="••••••" class="auth-input pr-10" required/>
+                  <button type="button" onclick="togglePw('admin-password',this)" class="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600 text-sm">👁</button>
+                </div>
+              </div>
+              <button type="submit" class="auth-btn mt-2" id="admin-login-btn">Sign In as Admin</button>
+            </form>
+          </div>
+
+          <!-- ── REGISTER ── -->
+          <div id="view-register" class="auth-view hidden">
+            <button onclick="showView('view-emp-login')" class="flex items-center gap-1.5 text-sm text-gray-400 hover:text-maroon-700 mb-4 transition">← Back to Login</button>
+            <h2 class="text-xl font-bold text-gray-800 mb-1">Create Account</h2>
+            <p class="text-sm text-gray-400 mb-5">Use your @rameshtrading.com.ph email</p>
+            <form onsubmit="doRegister(event)" class="space-y-3">
+              <input id="reg-name" type="text" placeholder="Full Name" class="auth-input" required maxlength="80"/>
+              <input id="reg-email" type="email" placeholder="you@rameshtrading.com.ph" class="auth-input" required/>
+              <div class="relative">
+                <input id="reg-password" type="password" placeholder="Password (min 6 characters)" class="auth-input pr-10" required minlength="6"/>
+                <button type="button" onclick="togglePw('reg-password',this)" class="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600 text-sm">👁</button>
+              </div>
+              <div class="relative">
+                <input id="reg-confirm" type="password" placeholder="Confirm Password" class="auth-input pr-10" required minlength="6"/>
+                <button type="button" onclick="togglePw('reg-confirm',this)" class="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600 text-sm">👁</button>
+              </div>
+              <button type="submit" class="auth-btn" id="reg-btn">Create Account</button>
+            </form>
+          </div>
+
+          <!-- ── FORGOT PW: Step 1 — Email ── -->
+          <div id="view-forgot-1" class="auth-view hidden">
+            <button onclick="showView(_currentAuthTab==='admin'?'view-admin-login':'view-emp-login')" class="flex items-center gap-1.5 text-sm text-gray-400 hover:text-maroon-700 mb-4">← Back to Login</button>
+            <h2 class="text-xl font-bold text-gray-800 mb-1">Forgot Password</h2>
+            <p class="text-sm text-gray-400 mb-5">Enter your company email and we'll send you an OTP.</p>
+            <form onsubmit="doSendOTP(event)" class="space-y-4">
+              <input id="forgot-email" type="email" placeholder="you@rameshtrading.com.ph" class="auth-input" required/>
+              <button type="submit" class="auth-btn" id="send-otp-btn">Send OTP</button>
+            </form>
+          </div>
+
+          <!-- ── FORGOT PW: Step 2 — OTP ── -->
+          <div id="view-forgot-2" class="auth-view hidden">
+            <h2 class="text-xl font-bold text-gray-800 mb-1">Enter OTP</h2>
+            <p class="text-sm text-gray-400 mb-1">A 6-digit code was sent to:</p>
+            <p class="text-sm font-semibold text-maroon-700 mb-5" id="otp-email-display">—</p>
+            <form onsubmit="doVerifyOTP(event)" class="space-y-4">
+              <input id="otp-input" type="text" placeholder="6-digit OTP" class="auth-input text-center text-2xl font-bold tracking-widest" maxlength="6" required inputmode="numeric"/>
+              <button type="submit" class="auth-btn" id="verify-otp-btn">Verify OTP</button>
+            </form>
+            <button onclick="doSendOTP(null,true)" class="w-full text-center text-sm text-gray-400 hover:text-maroon-700 mt-3 transition">Resend OTP</button>
+          </div>
+
+          <!-- ── FORGOT PW: Step 3 — New Password ── -->
+          <div id="view-forgot-3" class="auth-view hidden">
+            <h2 class="text-xl font-bold text-gray-800 mb-1">New Password</h2>
+            <p class="text-sm text-gray-400 mb-5">OTP verified! Set your new password.</p>
+            <form onsubmit="doResetPassword(event)" class="space-y-4">
+              <div class="relative">
+                <input id="new-pw" type="password" placeholder="New password (min 6)" class="auth-input pr-10" required minlength="6"/>
+                <button type="button" onclick="togglePw('new-pw',this)" class="absolute right-3 top-2.5 text-gray-400 text-sm">👁</button>
+              </div>
+              <div class="relative">
+                <input id="new-pw-confirm" type="password" placeholder="Confirm new password" class="auth-input pr-10" required minlength="6"/>
+                <button type="button" onclick="togglePw('new-pw-confirm',this)" class="absolute right-3 top-2.5 text-gray-400 text-sm">👁</button>
+              </div>
+              <button type="submit" class="auth-btn" id="reset-pw-btn">Reset Password</button>
+            </form>
+          </div>
+
+        </div><!-- /p-7 -->
+      </div><!-- /card -->
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ MAIN APP ══════════════ -->
+<div id="app" class="hidden flex min-h-screen">
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar" class="w-60 text-white flex flex-col fixed h-full z-30 shadow-xl -translate-x-full lg:translate-x-0 transition-transform duration-200" style="background:linear-gradient(180deg,#7b0019,#4a0010)">
+    <div class="p-5 border-b border-white/10 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-white/15 rounded-xl flex items-center justify-center text-lg">🏛️</div>
+        <div>
+          <div class="font-bold text-sm">RTC Employee</div>
+          <div class="text-white/40 text-xs">Portal v1.0</div>
+        </div>
+      </div>
+      <button onclick="closeSidebar()" class="lg:hidden text-white/50 hover:text-white text-xl px-1">✕</button>
+    </div>
+
+    <!-- User Info (clickable → profile panel) -->
+    <button onclick="openProfilePanel()" class="px-4 py-3 border-b border-white/10 text-left hover:bg-white/5 transition w-full">
+      <div class="flex items-center gap-2.5">
+        <div id="sidebar-avatar" class="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center text-sm font-bold shrink-0 overflow-hidden"></div>
+        <div class="min-w-0 flex-1">
+          <div class="text-sm font-semibold truncate" id="sidebar-name">…</div>
+          <div class="text-white/40 text-xs truncate" id="sidebar-pos">—</div>
+        </div>
+        <span class="text-white/30 text-xs">✏️</span>
+      </div>
+      <span id="sidebar-role-badge" class="mt-2 inline-block text-xs font-bold px-2.5 py-0.5 rounded-full bg-white/15"></span>
+    </button>
+
+    <nav class="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto" id="sidebar-nav"></nav>
+
+    <!-- Logout -->
+    <button onclick="doLogout()" class="m-3 py-2.5 flex items-center justify-center gap-2 text-sm text-white/60 hover:text-white hover:bg-white/10 rounded-xl transition">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+      Log Out
+    </button>
+  </aside>
+  <div id="sidebar-overlay" class="hidden lg:hidden fixed inset-0 bg-black/40 z-20" onclick="closeSidebar()"></div>
+
+  <!-- MAIN CONTENT -->
+  <main class="flex-1 lg:ml-60 flex flex-col min-h-screen">
+    <header class="bg-white border-b border-gray-100 shadow-sm px-4 sm:px-7 py-3.5 flex items-center justify-between sticky top-0 z-20 gap-3">
+      <div class="flex items-center gap-3 min-w-0">
+        <button onclick="openSidebar()" class="lg:hidden shrink-0 text-gray-500 hover:text-maroon-700 p-1" title="Menu">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <div class="min-w-0">
+          <h1 class="text-base font-bold text-gray-800 truncate" id="page-title">Feed</h1>
+          <p class="text-xs text-gray-400 truncate" id="page-subtitle"></p>
+        </div>
+      </div>
+      <div class="flex items-center gap-1.5 sm:gap-3 shrink-0">
+        <div id="header-loader" class="hidden"><div class="spinner" style="width:18px;height:18px;border-width:2px;"></div></div>
+        <button onclick="openHelpPanel()" title="Help &amp; FAQ" class="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-500 hover:bg-gray-100 hover:text-maroon-700 transition">
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span class="hidden sm:inline">Help</span>
+        </button>
+        <div class="hidden sm:block text-xs text-gray-300" id="header-time"></div>
+      </div>
+    </header>
+    <div class="flex-1 p-3 sm:p-6" id="page-content"></div>
+  </main>
+</div>
+
+<!-- ══════════════ PROFILE PANEL ══════════════ -->
+<div id="profile-panel" class="fixed right-0 top-0 h-full w-80 max-w-[92vw] bg-white shadow-2xl z-40 flex flex-col">
+  <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-maroon-700">
+    <h2 class="text-sm font-bold text-white">My Profile</h2>
+    <button onclick="closeProfilePanel()" class="text-white/60 hover:text-white text-xl transition">✕</button>
+  </div>
+
+  <!-- Avatar Section -->
+  <div class="px-5 py-5 border-b border-gray-100 flex flex-col items-center gap-3">
+    <div id="prof-avatar-display" class="w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold overflow-hidden border-4 border-maroon-100 bg-maroon-200 text-maroon-700"></div>
+    <label class="cursor-pointer text-xs font-semibold text-maroon-700 hover:underline">
+      📷 Change Photo
+      <input type="file" id="avatar-input" class="hidden" accept="image/*" onchange="handleAvatarUpload(this)"/>
+    </label>
+    <div id="avatar-uploading" class="hidden text-xs text-gray-400 flex items-center gap-2"><div class="spinner" style="width:14px;height:14px;border-width:2px;"></div> Uploading…</div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="flex border-b border-gray-100">
+    <button class="prof-tab active" onclick="switchProfTab('info')">Profile Info</button>
+    <button class="prof-tab" id="pw-tab-btn" onclick="switchProfTab('password')">Change Password</button>
+  </div>
+
+  <!-- Scrollable content -->
+  <div class="flex-1 overflow-y-auto">
+
+    <!-- Profile Info Tab -->
+    <div id="prof-tab-info" class="p-5 space-y-3">
+      <div>
+        <label class="text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-1">Full Name</label>
+        <input id="prof-fullname" type="text" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-maroon-200" maxlength="80"/>
+      </div>
+      <div id="prof-dept-wrap">
+        <label class="text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-1">Department</label>
+        <input id="prof-dept" type="text" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-maroon-200" maxlength="80"/>
+      </div>
+      <div>
+        <label class="text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-1">Position</label>
+        <input id="prof-position" type="text" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-maroon-200" maxlength="80"/>
+      </div>
+      <div id="prof-mobile-wrap">
+        <label class="text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-1">Mobile</label>
+        <input id="prof-mobile" type="tel" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-maroon-200" maxlength="20"/>
+      </div>
+      <div>
+        <label class="text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-1">Email</label>
+        <input id="prof-email-display" type="text" class="w-full px-3 py-2 border border-gray-100 rounded-lg text-sm bg-gray-50 text-gray-400" disabled/>
+      </div>
+      <button onclick="doSaveProfile()" id="save-profile-btn"
+              class="w-full py-2.5 bg-maroon-700 text-white text-sm font-bold rounded-xl hover:bg-maroon-800 transition mt-2">
+        💾 Save Changes
+      </button>
+    </div>
+
+    <!-- Change Password Tab -->
+    <div id="prof-tab-password" class="hidden p-5 space-y-3">
+      <div class="bg-maroon-50 rounded-xl p-3 text-xs text-maroon-700 font-medium">
+        🔒 Password must be at least 6 characters.
+      </div>
+      <div>
+        <label class="text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-1">Current Password</label>
+        <div class="relative">
+          <input id="cur-pw" type="password" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm pr-9 focus:outline-none focus:ring-2 focus:ring-maroon-200"/>
+          <button type="button" onclick="togglePw('cur-pw',this)" class="absolute right-2.5 top-2 text-gray-400 text-xs">👁</button>
+        </div>
+      </div>
+      <div>
+        <label class="text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-1">New Password</label>
+        <div class="relative">
+          <input id="new-pw-prof" type="password" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm pr-9 focus:outline-none focus:ring-2 focus:ring-maroon-200" minlength="6"/>
+          <button type="button" onclick="togglePw('new-pw-prof',this)" class="absolute right-2.5 top-2 text-gray-400 text-xs">👁</button>
+        </div>
+      </div>
+      <div>
+        <label class="text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-1">Confirm New Password</label>
+        <div class="relative">
+          <input id="conf-pw-prof" type="password" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm pr-9 focus:outline-none focus:ring-2 focus:ring-maroon-200" minlength="6"/>
+          <button type="button" onclick="togglePw('conf-pw-prof',this)" class="absolute right-2.5 top-2 text-gray-400 text-xs">👁</button>
+        </div>
+      </div>
+      <button onclick="doChangePassword()" id="change-pw-btn"
+              class="w-full py-2.5 bg-maroon-700 text-white text-sm font-bold rounded-xl hover:bg-maroon-800 transition">
+        🔐 Update Password
+      </button>
+    </div>
+
+  </div>
+</div>
+<div id="profile-overlay" class="hidden fixed inset-0 bg-black/30 z-30" onclick="closeProfilePanel()"></div>
+
+<!-- ══════════════ HELP / FAQ PANEL ══════════════ -->
+<div id="help-panel" class="fixed right-0 top-0 h-full w-96 max-w-[92vw] bg-white shadow-2xl z-40 flex flex-col translate-x-full transition-transform duration-200">
+  <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-maroon-700">
+    <h2 class="text-sm font-bold text-white">Help &amp; FAQ</h2>
+    <button onclick="closeHelpPanel()" class="text-white/60 hover:text-white text-xl transition">✕</button>
+  </div>
+  <div class="flex-1 overflow-y-auto p-5 space-y-2.5" id="help-faq-list">
+    <details class="faq-item border border-gray-200 rounded-xl p-3.5 open:bg-gray-50" open>
+      <summary class="text-sm font-semibold text-gray-700 cursor-pointer">How do I book a room?</summary>
+      <p class="text-xs text-gray-500 mt-2 leading-relaxed">Click <strong>Book a Room</strong> in the sidebar. You'll be taken to the Booking System already signed in — no need to log in again.</p>
+    </details>
+    <details class="faq-item border border-gray-200 rounded-xl p-3.5 open:bg-gray-50">
+      <summary class="text-sm font-semibold text-gray-700 cursor-pointer">How do I update my profile or photo?</summary>
+      <p class="text-xs text-gray-500 mt-2 leading-relaxed">Click your name/avatar in the sidebar to open <strong>My Profile</strong>. You can update your info and change your photo from there.</p>
+    </details>
+    <details class="faq-item border border-gray-200 rounded-xl p-3.5 open:bg-gray-50">
+      <summary class="text-sm font-semibold text-gray-700 cursor-pointer">How do I change my password?</summary>
+      <p class="text-xs text-gray-500 mt-2 leading-relaxed">Open <strong>My Profile</strong> → <strong>Change Password</strong> tab. This works for both Employee and Admin accounts.</p>
+    </details>
+    <details class="faq-item border border-gray-200 rounded-xl p-3.5 open:bg-gray-50">
+      <summary class="text-sm font-semibold text-gray-700 cursor-pointer">I forgot my password. What do I do?</summary>
+      <p class="text-xs text-gray-500 mt-2 leading-relaxed">On the login screen, click <strong>Forgot password?</strong>. You'll get a 6-digit OTP by email to set a new password.</p>
+    </details>
+    <details class="faq-item border border-gray-200 rounded-xl p-3.5 open:bg-gray-50">
+      <summary class="text-sm font-semibold text-gray-700 cursor-pointer">Where can I find company documents?</summary>
+      <p class="text-xs text-gray-500 mt-2 leading-relaxed">Use the <strong>Folders</strong> section in the sidebar to browse and download shared company files.</p>
+    </details>
+    <details class="faq-item border border-gray-200 rounded-xl p-3.5 open:bg-gray-50">
+      <summary class="text-sm font-semibold text-gray-700 cursor-pointer">How do I post an update on the Feed?</summary>
+      <p class="text-xs text-gray-500 mt-2 leading-relaxed">Posting is limited to Admins, to keep the Feed focused on company announcements. Employees can view and comment on posts.</p>
+    </details>
+    <details class="faq-item border border-gray-200 rounded-xl p-3.5 open:bg-gray-50">
+      <summary class="text-sm font-semibold text-gray-700 cursor-pointer">Still need help?</summary>
+      <p class="text-xs text-gray-500 mt-2 leading-relaxed">Contact your system administrator or Isaac / Joymee / Ma'am Ana.</p>
+    </details>
+  </div>
+</div>
+<div id="help-overlay" class="hidden fixed inset-0 bg-black/30 z-30" onclick="closeHelpPanel()"></div>
+
+<div id="toast-container"></div>
+
+<!-- ══════════════════════════════════════════════════════
+     JAVASCRIPT
+═══════════════════════════════════════════════════════════ -->
+<script>
+const APP = { user:null, folders:[], files:[], posts:[] };
+
+// SSO target — the RTC Booking System's public URL (GitHub Pages frontend)
+const BOOKING_SYSTEM_URL = 'https://rtcsystem.github.io/book/';
+let _forgotEmail = '';
+let _currentAuthTab = 'emp';
+
+// ── Helpers ─────────────────────────────────────────────────
+function toast(msg, type='info', dur=4500){
+  const el=document.createElement('div');
+  el.className=`toast ${type}`;
+  el.innerHTML=`<span>${{success:'✅',error:'❌',info:'ℹ️'}[type]||'ℹ️'}</span><span>${msg}</span>`;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(()=>{el.style.opacity='0';el.style.transition='opacity .3s';setTimeout(()=>el.remove(),300);},dur);
+}
+function setLoading(s){document.getElementById('header-loader').classList.toggle('hidden',!s);}
+function esc(s){const d=document.createElement('div');d.appendChild(document.createTextNode(s));return d.innerHTML;}
+function fmtDate(iso){if(!iso)return'—';try{const d=new Date(iso);return d.toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'})+' '+d.toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'});}catch{return iso;}}
+function fmtShort(iso){if(!iso)return'—';try{return new Date(iso).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'});}catch{return iso;}}
+function timeAgo(iso){const diff=Date.now()-new Date(iso).getTime(),m=Math.floor(diff/60000);if(m<1)return'just now';if(m<60)return`${m}m ago`;const h=Math.floor(m/60);if(h<24)return`${h}h ago`;const d=Math.floor(h/24);if(d<7)return`${d}d ago`;return fmtShort(iso);}
+
+function togglePw(id, btn){
+  const el=document.getElementById(id);
+  if(!el)return;
+  el.type=el.type==='password'?'text':'password';
+  btn.textContent=el.type==='password'?'👁':'🙈';
+}
+
+function setBtnLoading(id, loading, text=''){
+  const btn=document.getElementById(id);
+  if(!btn)return;
+  btn.disabled=loading;
+  if(loading) btn.innerHTML=`<div class="spinner" style="width:16px;height:16px;border-width:2px;border-top-color:#fff;border-color:rgba(255,255,255,.3)"></div>`;
+  else if(text) btn.innerHTML=text;
+}
+
+setInterval(()=>{const el=document.getElementById('header-time');if(el)el.textContent=new Date().toLocaleTimeString('en-PH');},1000);
+
+
+// ════════════════════════════════════════════════════════════
+// 🔲  CONFIRM MODAL
+// ════════════════════════════════════════════════════════════
+function showConfirm(msg, onYes, yesLabel) {
+  var overlay = document.createElement('div');
+  overlay.id = 'confirm-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9000;display:flex;align-items:center;justify-content:center;';
+  overlay.innerHTML = '<div style="background:#fff;border-radius:16px;padding:24px 28px;max-width:360px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.25);animation:slideUp .18s ease;">'
+    + '<div style="font-size:28px;text-align:center;margin-bottom:12px;">⚠️</div>'
+    + '<p style="font-size:14px;color:#374151;text-align:center;font-weight:500;margin-bottom:20px;line-height:1.5;">' + msg + '</p>'
+    + '<div style="display:flex;gap:10px;">'
+    + '<button id="confirm-no" style="flex:1;padding:10px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:13px;font-weight:700;color:#6b7280;background:#fff;cursor:pointer;">Cancel</button>'
+    + '<button id="confirm-yes" style="flex:1;padding:10px;border:none;border-radius:10px;font-size:13px;font-weight:700;color:#fff;background:#dc2626;cursor:pointer;">' + (yesLabel||'Delete') + '</button>'
+    + '</div></div>';
+  document.body.appendChild(overlay);
+  function close(){ overlay.remove(); }
+  overlay.querySelector('#confirm-no').onclick = close;
+  overlay.querySelector('#confirm-yes').onclick = function(){ close(); onYes(); };
+  overlay.onclick = function(e){ if(e.target===overlay) close(); };
+}
+
+// ════════════════════════════════════════════════════════════
+// 👁  FILE PREVIEW MODAL  (Google Drive embed)
+// ════════════════════════════════════════════════════════════
+function previewFile(fileId, fileName) {
+  var overlay = document.createElement('div');
+  overlay.id = 'preview-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:8500;display:flex;flex-direction:column;align-items:center;justify-content:center;';
+  overlay.innerHTML = '<div style="width:92vw;max-width:980px;display:flex;flex-direction:column;gap:10px;">'
+    + '<div style="display:flex;align-items:center;justify-content:space-between;padding:0 4px;">'
+    + '<span style="color:#fff;font-size:13px;font-weight:600;max-width:65%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(fileName) + '</span>'
+    + '<div style="display:flex;gap:8px;align-items:center;">'
+    + '<a href="https://drive.google.com/file/d/' + fileId + '/view" target="_blank" style="color:#fca5a5;font-size:12px;font-weight:700;text-decoration:none;padding:6px 14px;border:1px solid rgba(255,255,255,.2);border-radius:8px;background:rgba(255,255,255,.08)">↗ Full View</a>'
+    + '<button onclick="document.getElementById(\'preview-overlay\').remove()" style="color:#fff;font-size:20px;background:rgba(255,255,255,.1);border:none;cursor:pointer;padding:3px 12px;border-radius:8px;line-height:1;">✕</button>'
+    + '</div></div>'
+    + '<iframe src="https://drive.google.com/file/d/' + fileId + '/preview" style="width:100%;height:80vh;border:none;border-radius:12px;background:#fff;" allowfullscreen></iframe>'
+    + '</div>';
+  document.body.appendChild(overlay);
+  overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
+}
+
+// ════════════════════════════════════════════════════════════
+// 👤  USER PROFILE CARD  (click on any author to view)
+// ════════════════════════════════════════════════════════════
+function showUserProfile(email) {
+  if(!email) return;
+  var overlay = document.createElement('div');
+  overlay.id = 'user-profile-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:9000;display:flex;align-items:center;justify-content:center;';
+  overlay.innerHTML = '<div id="upc-inner" style="background:#fff;border-radius:20px;padding:28px 24px;max-width:290px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.25);animation:slideUp .18s ease;text-align:center;position:relative;">'
+    + '<div style="margin:0 auto 10px;width:48px;height:48px;border-radius:50%;background:#f3f4f6;display:flex;align-items:center;justify-content:center;"><div class="spinner"></div></div>'
+    + '<p style="font-size:12px;color:#9ca3af;">Loading…</p>'
+    + '</div>';
+  document.body.appendChild(overlay);
+  overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
+
+  google.script.run
+    .withSuccessHandler(function(res){
+      var inner = document.getElementById('upc-inner');
+      if(!inner) return;
+      var closeBtn = '<button onclick="document.getElementById(\'user-profile-overlay\').remove()" style="position:absolute;top:12px;right:14px;font-size:16px;background:none;border:none;cursor:pointer;color:#9ca3af;">✕</button>';
+      if(!res.success){ inner.innerHTML = closeBtn + '<p style="color:#ef4444;font-size:13px;margin-top:20px;">User not found.</p>'; return; }
+      var initials=(res.fullName||'?').split(' ').map(function(w){return w[0]||'';}).join('').toUpperCase().slice(0,2);
+      var avatarHtml = res.avatar
+        ? '<img src="data:image/jpeg;base64,'+res.avatar+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>'
+        : '<span style="font-size:22px;font-weight:900;color:#7b0019;">'+initials+'</span>';
+      var roleBadge = (res.role==='Admin')
+        ? 'background:#7b0019;color:#fff;'
+        : 'background:#f3f4f6;color:#6b7280;';
+      inner.innerHTML = closeBtn
+        + '<div style="width:72px;height:72px;border-radius:50%;background:#fef2f2;border:3px solid #fecaca;margin:4px auto 10px;display:flex;align-items:center;justify-content:center;overflow:hidden;">' + avatarHtml + '</div>'
+        + '<span style="font-size:10px;font-weight:700;padding:2px 10px;border-radius:20px;'+roleBadge+'">' + esc(res.role||'Employee') + '</span>'
+        + '<h3 style="font-size:16px;font-weight:800;color:#111827;margin:8px 0 3px;">' + esc(res.fullName||'—') + '</h3>'
+        + (res.position ? '<p style="font-size:12px;color:#6b7280;margin:0 0 2px;">' + esc(res.position) + '</p>' : '')
+        + (res.department ? '<p style="font-size:12px;color:#9ca3af;margin:0 0 10px;">' + esc(res.department) + '</p>' : '<div style="margin-bottom:10px;"></div>')
+        + '<a href="mailto:'+esc(res.email)+'" style="font-size:12px;color:#7b0019;font-weight:600;text-decoration:none;">' + esc(res.email) + '</a>';
+    })
+    .withFailureHandler(function(err){
+      var inner = document.getElementById('upc-inner');
+      if(inner) inner.innerHTML = '<p style="color:#ef4444;font-size:13px;">'+esc(err.message)+'</p>';
+    })
+    .getUserProfile(email);
+}
+
+
+// ════════════════════════════════════════════════════════════
+// AUTH SCREEN LOGIC
+// ════════════════════════════════════════════════════════════
+window.addEventListener('load',()=>{
+  setTimeout(()=>{
+    document.getElementById('global-loader').classList.add('hidden');
+    document.getElementById('auth-screen').classList.remove('hidden');
+  },600);
+});
+
+function switchAuthTab(tab){
+  _currentAuthTab = tab;
+  document.querySelectorAll('.auth-tab').forEach((el,i)=>el.classList.toggle('active',(tab==='emp'&&i===0)||(tab==='admin'&&i===1)));
+  showView(tab==='emp'?'view-emp-login':'view-admin-login');
+}
+
+function showView(viewId){
+  document.querySelectorAll('.auth-view').forEach(v=>v.classList.add('hidden'));
+  const el=document.getElementById(viewId);
+  if(el){el.classList.remove('hidden');el.classList.add('slide-right');}
+}
+
+// Employee Login
+function doEmpLogin(e){
+  e.preventDefault();
+  const email=document.getElementById('emp-email').value.trim();
+  const pw=document.getElementById('emp-password').value;
+  setBtnLoading('emp-login-btn',true);
+  google.script.run
+    .withSuccessHandler(res=>{
+      setBtnLoading('emp-login-btn',false,'Sign In');
+      if(res.success){ onLoginSuccess(res.user); }
+      else toast(res.message,'error');
+    })
+    .withFailureHandler(err=>{setBtnLoading('emp-login-btn',false,'Sign In');toast(err.message,'error');})
+    .loginUser(email,pw);
+}
+
+// Admin Login
+function doAdminLogin(e){
+  e.preventDefault();
+  const email=document.getElementById('admin-email').value.trim();
+  const pw=document.getElementById('admin-password').value;
+  setBtnLoading('admin-login-btn',true);
+  google.script.run
+    .withSuccessHandler(res=>{
+      setBtnLoading('admin-login-btn',false,'Sign In as Admin');
+      if(res.success){ onLoginSuccess(res.user); }
+      else toast(res.message,'error');
+    })
+    .withFailureHandler(err=>{setBtnLoading('admin-login-btn',false,'Sign In as Admin');toast(err.message,'error');})
+    .adminLogin(email,pw);
+}
+
+// Register
+function doRegister(e){
+  e.preventDefault();
+  const name=document.getElementById('reg-name').value.trim();
+  const email=document.getElementById('reg-email').value.trim();
+  const pw=document.getElementById('reg-password').value;
+  const confirm=document.getElementById('reg-confirm').value;
+  if(pw!==confirm){toast('Passwords do not match.','error');return;}
+  setBtnLoading('reg-btn',true);
+  google.script.run
+    .withSuccessHandler(res=>{
+      setBtnLoading('reg-btn',false,'Create Account');
+      if(res.success){toast(res.message,'success');showView('view-emp-login');switchAuthTab('emp');}
+      else toast(res.message,'error');
+    })
+    .withFailureHandler(err=>{setBtnLoading('reg-btn',false,'Create Account');toast(err.message,'error');})
+    .registerUser({email,fullName:name,password:pw});
+}
+
+// Forgot PW — Step 1: send OTP
+function doSendOTP(e, isResend=false){
+  if(e) e.preventDefault();
+  const email = isResend ? _forgotEmail : document.getElementById('forgot-email').value.trim();
+  if(!email){toast('Enter your email first.','error');return;}
+  _forgotEmail=email;
+  if(!isResend) setBtnLoading('send-otp-btn',true);
+  google.script.run
+    .withSuccessHandler(res=>{
+      if(!isResend) setBtnLoading('send-otp-btn',false,'Send OTP');
+      if(res.success){
+        toast(res.message,'success');
+        document.getElementById('otp-email-display').textContent=email;
+        showView('view-forgot-2');
+      } else toast(res.message,'error');
+    })
+    .withFailureHandler(err=>{if(!isResend)setBtnLoading('send-otp-btn',false,'Send OTP');toast(err.message,'error');})
+    .sendForgotPasswordOTP(email);
+}
+
+// Forgot PW — Step 2: verify OTP
+function doVerifyOTP(e){
+  e.preventDefault();
+  const otp=document.getElementById('otp-input').value.trim();
+  if(otp.length!==6){toast('Enter the 6-digit OTP.','error');return;}
+  setBtnLoading('verify-otp-btn',true);
+  // Just proceed to step 3 — actual verification happens on reset
+  setBtnLoading('verify-otp-btn',false,'Verify OTP');
+  _forgotOtp=otp;
+  showView('view-forgot-3');
+}
+
+// Forgot PW — Step 3: reset password
+function doResetPassword(e){
+  e.preventDefault();
+  const pw=document.getElementById('new-pw').value;
+  const confirm=document.getElementById('new-pw-confirm').value;
+  if(pw!==confirm){toast('Passwords do not match.','error');return;}
+  setBtnLoading('reset-pw-btn',true);
+  google.script.run
+    .withSuccessHandler(res=>{
+      setBtnLoading('reset-pw-btn',false,'Reset Password');
+      if(res.success){toast(res.message,'success');switchAuthTab(_currentAuthTab);}
+      else toast(res.message,'error');
+    })
+    .withFailureHandler(err=>{setBtnLoading('reset-pw-btn',false,'Reset Password');toast(err.message,'error');})
+    .verifyOTPAndResetPassword(_forgotEmail,_forgotOtp,pw);
+}
+let _forgotOtp='';
+
+// ── After successful login ───────────────────────────────────
+function onLoginSuccess(user){
+  APP.user=user;
+  document.getElementById('auth-screen').classList.add('hidden');
+  renderApp();
+}
+
+// ── SSO: Book a Room ────────────────────────────────────────
+// Requests a short-lived signed token from the server, then opens
+// the Booking System with it attached — the user lands there
+// already logged in, no password re-entry.
+function openBookingSystem(){
+  const link=document.querySelector('[data-nav="book-room"]');
+  const original=link?link.innerHTML:'';
+  if(link) link.innerHTML='<span>⏳</span><span>Opening…</span>';
+
+  google.script.run
+    .withSuccessHandler(res=>{
+      if(link) link.innerHTML=original;
+      if(!res || !res.success){
+        toast((res&&res.message)||'Could not open Booking System.','error');
+        return;
+      }
+      const url=BOOKING_SYSTEM_URL+'?ssoToken='+encodeURIComponent(res.token);
+      window.open(url,'_blank','noopener');
+    })
+    .withFailureHandler(err=>{
+      if(link) link.innerHTML=original;
+      toast('Could not open Booking System: '+err.message,'error');
+    })
+    .generateBookingSSOToken(APP.user.email);
+}
+
+// ── Logout ───────────────────────────────────────────────────
+function doLogout(){
+  APP.user=null;
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('auth-screen').classList.remove('hidden');
+  switchAuthTab('emp');
+  showView('view-emp-login');
+  toast('Logged out successfully.','info');
+}
+
+
+// ════════════════════════════════════════════════════════════
+// APP SHELL
+// ════════════════════════════════════════════════════════════
+const POST_TYPES={
+  Memo:        {icon:'📄',color:'#7b0019',bg:'#fff0f0',cls:'post-type-memo',     label:'Memo'},
+  Event:       {icon:'📅',color:'#2563eb',bg:'#eff6ff',cls:'post-type-event',    label:'Event'},
+  Announcement:{icon:'📢',color:'#d97706',bg:'#fffbeb',cls:'post-type-announcement',label:'Announcement'},
+  Birthday:    {icon:'🎂',color:'#db2777',bg:'#fdf2f8',cls:'post-type-birthday', label:'Birthday / HR'},
+};
+
+function renderApp(){
+  const u=APP.user;
+  const initials=(u.fullName||'').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)||'?';
+  const avatarEl=document.getElementById('sidebar-avatar');
+  if(u.avatar) avatarEl.innerHTML=`<img src="data:image/jpeg;base64,${u.avatar}" class="w-full h-full object-cover"/>`;
+  else { avatarEl.textContent=initials; avatarEl.style.fontSize='14px'; }
+  document.getElementById('sidebar-name').textContent=u.fullName||u.email;
+  document.getElementById('sidebar-pos').textContent=u.position||u.department||'—';
+  const badge=document.getElementById('sidebar-role-badge');
+  badge.textContent=u.role;
+  badge.className='mt-2 inline-block text-xs font-bold px-2.5 py-0.5 rounded-full '+(u.role==='Admin'?'bg-white text-maroon-700':'bg-white/15 text-white');
+
+  const isAdmin=u.role==='Admin';
+  const navLinks=isAdmin
+    ?[{id:'feed',i:'🏠',l:'Feed'},{id:'dashboard',i:'📊',l:'Dashboard'},{id:'folders',i:'📁',l:'Folders'},
+      {id:'upload',i:'📤',l:'Upload File'},{id:'documents',i:'📄',l:'Documents'},
+      {id:'book-room',i:'🗂️',l:'Book Management'},
+      {id:'users',i:'👥',l:'Users'}]
+    :[{id:'feed',i:'🏠',l:'Feed'},{id:'folders',i:'📁',l:'Folders'},{id:'documents',i:'📄',l:'Documents'},
+      {id:'book-room',i:'🚪',l:'Book a Room'}];
+
+  const nav=document.getElementById('sidebar-nav');
+  nav.innerHTML=navLinks.map(n=>`<a href="#" data-nav="${n.id}" class="nav-link flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-white/80"><span>${n.i}</span><span>${n.l}</span></a>`).join('');
+  nav.querySelectorAll('[data-nav]').forEach(el=>el.addEventListener('click',e=>{
+    e.preventDefault();
+    closeSidebar();
+    if(el.dataset.nav==='book-room'){ openBookingSystem(); return; }
+    navigateTo(el.dataset.nav);
+  }));
+
+  document.getElementById('app').classList.remove('hidden');
+  navigateTo('feed');
+}
+
+function navigateTo(panel){
+  document.querySelectorAll('[data-nav]').forEach(el=>el.classList.toggle('active',el.dataset.nav===panel));
+  const titles={feed:['Company Feed','Stay updated with the latest from RTC'],
+    dashboard:['Dashboard',`Welcome, ${APP.user.fullName}`],folders:['Folders',APP.user.role==='Admin'?'Manage folders and upload files':'Browse and view company folders'],
+    upload:['Upload File','Add new documents'],documents:['Documents','Browse files'],
+    users:['Users','Manage accounts']};
+  const [t,s]=titles[panel]||['Page',''];
+  document.getElementById('page-title').textContent=t;
+  document.getElementById('page-subtitle').textContent=s;
+  document.getElementById('page-content').innerHTML='<div class="flex justify-center py-16"><div class="spinner"></div></div>';
+  ({feed:renderFeed,dashboard:renderDashboard,folders:renderFolders,
+    upload:renderUpload,documents:renderDocuments,users:renderUsers})[panel]?.();
+}
+
+
+// ════════════════════════════════════════════════════════════
+// 👤  PROFILE PANEL
+// ════════════════════════════════════════════════════════════
+function openProfilePanel(){
+  const u=APP.user;
+  // Populate fields
+  const avatarEl=document.getElementById('prof-avatar-display');
+  if(u.avatar) avatarEl.innerHTML=`<img src="data:image/jpeg;base64,${u.avatar}" class="w-full h-full object-cover"/>`;
+  else { avatarEl.textContent=(u.fullName||'?').slice(0,2).toUpperCase(); avatarEl.style.fontSize='24px'; }
+
+  document.getElementById('prof-fullname').value=u.fullName||'';
+  document.getElementById('prof-dept').value=u.department||'';
+  document.getElementById('prof-position').value=u.position||'';
+  document.getElementById('prof-mobile').value=u.mobile||'';
+  document.getElementById('prof-email-display').value=u.email||'';
+
+  // Hide dept/mobile for admin (Change Password stays available to both roles)
+  const isAdmin=u.role==='Admin';
+  document.getElementById('prof-dept-wrap').classList.toggle('hidden',isAdmin);
+  document.getElementById('prof-mobile-wrap').classList.toggle('hidden',isAdmin);
+
+  document.getElementById('profile-panel').classList.add('open');
+  document.getElementById('profile-overlay').classList.remove('hidden');
+  switchProfTab('info');
+}
+function closeProfilePanel(){
+  document.getElementById('profile-panel').classList.remove('open');
+  document.getElementById('profile-overlay').classList.add('hidden');
+}
+function openHelpPanel(){
+  document.getElementById('help-panel').classList.remove('translate-x-full');
+  document.getElementById('help-overlay').classList.remove('hidden');
+}
+function closeHelpPanel(){
+  document.getElementById('help-panel').classList.add('translate-x-full');
+  document.getElementById('help-overlay').classList.add('hidden');
+}
+// Mobile sidebar drawer
+function openSidebar(){
+  document.getElementById('sidebar').classList.remove('-translate-x-full');
+  document.getElementById('sidebar-overlay').classList.remove('hidden');
+}
+function closeSidebar(){
+  document.getElementById('sidebar').classList.add('-translate-x-full');
+  document.getElementById('sidebar-overlay').classList.add('hidden');
+}
+function switchProfTab(tab){
+  document.querySelectorAll('.prof-tab').forEach((el,i)=>el.classList.toggle('active',(tab==='info'&&i===0)||(tab==='password'&&i===1)));
+  document.getElementById('prof-tab-info').classList.toggle('hidden',tab!=='info');
+  document.getElementById('prof-tab-password').classList.toggle('hidden',tab!=='password');
+}
+
+function doSaveProfile(){
+  const btn=document.getElementById('save-profile-btn');
+  btn.disabled=true; btn.textContent='Saving…';
+  const u=APP.user;
+  const data={
+    email      : u.email,
+    fullName   : document.getElementById('prof-fullname').value.trim(),
+    department : document.getElementById('prof-dept').value.trim(),
+    position   : document.getElementById('prof-position').value.trim(),
+    mobile     : document.getElementById('prof-mobile').value.trim(),
+  };
+  const fn = u.role==='Admin' ? 'updateAdminProfile' : 'updateUserProfile';
+  const payload = u.role==='Admin'
+    ? { email:u.email, displayName:data.fullName, position:data.position }
+    : data;
+
+  google.script.run
+    .withSuccessHandler(res=>{
+      btn.disabled=false; btn.textContent='💾 Save Changes';
+      if(res.success){
+        toast(res.message,'success');
+        APP.user.fullName=res.fullName||data.fullName;
+        APP.user.position=res.position||data.position;
+        APP.user.department=res.department||data.department;
+        APP.user.mobile=res.mobile||data.mobile;
+        // Refresh sidebar
+        document.getElementById('sidebar-name').textContent=APP.user.fullName;
+        document.getElementById('sidebar-pos').textContent=APP.user.position||APP.user.department||'—';
+      } else toast(res.message,'error');
+    })
+    .withFailureHandler(err=>{btn.disabled=false;btn.textContent='💾 Save Changes';toast(err.message,'error');})
+    [fn](payload);
+}
+
+function doChangePassword(){
+  const cur=document.getElementById('cur-pw').value;
+  const np=document.getElementById('new-pw-prof').value;
+  const conf=document.getElementById('conf-pw-prof').value;
+  if(np!==conf){toast('Passwords do not match.','error');return;}
+  const btn=document.getElementById('change-pw-btn');
+  btn.disabled=true;btn.textContent='Updating…';
+  google.script.run
+    .withSuccessHandler(res=>{
+      btn.disabled=false;btn.textContent='🔐 Update Password';
+      if(res.success){toast(res.message,'success');document.getElementById('cur-pw').value='';document.getElementById('new-pw-prof').value='';document.getElementById('conf-pw-prof').value='';}
+      else toast(res.message,'error');
+    })
+    .withFailureHandler(err=>{btn.disabled=false;btn.textContent='🔐 Update Password';toast(err.message,'error');})
+    [APP.user.role==='Admin'?'changeAdminPassword':'changePassword'](APP.user.email,cur,np);
+}
+
+// Avatar upload with client-side 128×128 resize
+function handleAvatarUpload(input){
+  const file=input.files[0];
+  if(!file) return;
+  if(file.size>5*1024*1024){toast('Image too large. Max 5 MB.','error');return;}
+  document.getElementById('avatar-uploading').classList.remove('hidden');
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const img=new Image();
+    img.onload=()=>{
+      const canvas=document.createElement('canvas');
+      canvas.width=128;canvas.height=128;
+      const ctx=canvas.getContext('2d');
+      const size=Math.min(img.width,img.height);
+      const sx=(img.width-size)/2,sy=(img.height-size)/2;
+      ctx.drawImage(img,sx,sy,size,size,0,0,128,128);
+      const base64=canvas.toDataURL('image/jpeg',0.85).split(',')[1];
+      google.script.run
+        .withSuccessHandler(res=>{
+          document.getElementById('avatar-uploading').classList.add('hidden');
+          if(res.success){
+            APP.user.avatar=res.avatar;
+            toast('Profile picture updated.','success');
+            // Update displays
+            const b64=res.avatar;
+            document.getElementById('prof-avatar-display').innerHTML=`<img src="data:image/jpeg;base64,${b64}" class="w-full h-full object-cover"/>`;
+            const sa=document.getElementById('sidebar-avatar');
+            sa.innerHTML=`<img src="data:image/jpeg;base64,${b64}" class="w-full h-full object-cover"/>`;
+          } else toast(res.message,'error');
+        })
+        .withFailureHandler(err=>{document.getElementById('avatar-uploading').classList.add('hidden');toast(err.message,'error');})
+        .updateAvatar(APP.user.email,APP.user.role,base64);
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+
+// ════════════════════════════════════════════════════════════
+// 🏠  FEED
+// ════════════════════════════════════════════════════════════
+function renderFeed(){
+  const isAdmin=APP.user.role==='Admin';
+  document.getElementById('page-content').innerHTML=`
+    <div class="fade-in max-w-2xl mx-auto space-y-4">
+      ${isAdmin?renderCompose():''}
+      <div id="posts-feed">${shimmerPosts(3)}</div>
+    </div>`;
+  if(isAdmin) initCompose();
+  loadFeed();
+}
+
+function renderCompose(){
+  const typeOpts=Object.entries(POST_TYPES).map(([k,v])=>
+    `<button type="button" data-type="${k}" onclick="selectPostType('${k}')"
+      class="type-btn flex flex-col items-center gap-1 px-3 py-2 rounded-xl border-2 border-transparent hover:border-gray-200 transition cursor-pointer text-center" style="background:${v.bg}">
+      <span class="text-xl">${v.icon}</span>
+      <span class="text-xs font-semibold" style="color:${v.color}">${v.label}</span>
+    </button>`).join('');
+  return `
+    <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 slide-up">
+      <h2 class="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2"><span class="w-7 h-7 bg-maroon-700 text-white rounded-lg flex items-center justify-center text-xs">✍️</span>Create Post</h2>
+      <div class="grid grid-cols-4 gap-2 mb-4" id="type-picker">${typeOpts}</div>
+      <form id="compose-form" onsubmit="doCreatePost(event)" class="space-y-3">
+        <input type="hidden" id="post-type-val" value="Announcement"/>
+        <input id="post-title" type="text" placeholder="Post title / subject…" maxlength="120"
+               class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-maroon-200 focus:border-maroon-400" required/>
+        <textarea id="post-content" rows="3" placeholder="Write your message here…" maxlength="2000"
+                  class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-maroon-200 resize-none" required></textarea>
+        <div id="event-fields" class="hidden grid grid-cols-2 gap-2">
+          <input id="event-date" type="datetime-local" class="px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"/>
+          <input id="event-loc" type="text" placeholder="📍 Location / Venue" class="px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"/>
+        </div>
+        <div id="birthday-fields" class="hidden">
+          <input id="bday-name" type="text" placeholder="🎂 Employee Name / HR Note" class="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-200"/>
+        </div>
+        <div class="flex gap-2 items-center">
+          <input id="attach-link" type="url" placeholder="🔗 Optional attachment URL" class="flex-1 px-3 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-maroon-200"/>
+          <label class="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer">
+            <input type="checkbox" id="post-pin" class="rounded"/> 📌 Pin
+          </label>
+        </div>
+        <div class="flex justify-end gap-2">
+          <button type="button" onclick="clearCompose()" class="px-4 py-2 text-sm text-gray-500 hover:bg-gray-100 rounded-lg">Clear</button>
+          <button type="submit" id="post-submit-btn" class="px-5 py-2 bg-maroon-700 text-white text-sm font-bold rounded-xl hover:bg-maroon-800 transition flex items-center gap-2"><span>🚀</span><span>Publish</span></button>
+        </div>
+      </form>
+    </div>`;
+}
+
+function initCompose(){ selectPostType('Announcement'); }
+
+function selectPostType(type){
+  document.getElementById('post-type-val').value=type;
+  document.querySelectorAll('.type-btn').forEach(btn=>{
+    const cfg=POST_TYPES[btn.dataset.type];
+    const active=btn.dataset.type===type;
+    btn.style.borderColor=active?cfg.color:'transparent';
+    btn.style.boxShadow=active?`0 0 0 2px ${cfg.color}30`:'';
+  });
+  document.getElementById('event-fields')?.classList.toggle('hidden',type!=='Event');
+  document.getElementById('birthday-fields')?.classList.toggle('hidden',type!=='Birthday');
+}
+
+function clearCompose(){ document.getElementById('compose-form')?.reset(); selectPostType('Announcement'); }
+
+function doCreatePost(e){
+  e.preventDefault();
+  const type=document.getElementById('post-type-val').value;
+  const title=document.getElementById('post-title').value.trim();
+  const content=document.getElementById('post-content').value.trim();
+  const bday=document.getElementById('bday-name')?.value||'';
+  const finalContent=type==='Birthday'&&bday?`👤 ${bday}\n\n${content}`:content;
+  const btn=document.getElementById('post-submit-btn');
+  btn.disabled=true;btn.innerHTML='<div class="spinner" style="width:16px;height:16px;border-width:2px;border-top-color:#fff;border-color:rgba(255,255,255,.3)"></div><span>Publishing…</span>';
+  setLoading(true);
+  google.script.run
+    .withSuccessHandler(res=>{
+      setLoading(false);btn.disabled=false;btn.innerHTML='<span>🚀</span><span>Publish</span>';
+      if(res.success){toast(res.message,'success');clearCompose();loadFeed();}
+      else toast(res.message,'error');
+    })
+    .withFailureHandler(err=>{setLoading(false);btn.disabled=false;btn.innerHTML='<span>🚀</span><span>Publish</span>';toast(err.message,'error');})
+    .createPost({type,title,content:finalContent,authorEmail:APP.user.email,authorName:APP.user.fullName,
+      eventDate:document.getElementById('event-date')?.value||'',
+      eventLoc:document.getElementById('event-loc')?.value||'',
+      attachLink:document.getElementById('attach-link')?.value||'',
+      attachName:document.getElementById('attach-link')?.value?'Attachment':'',
+      isPinned:document.getElementById('post-pin')?.checked||false});
+}
+
+function loadFeed(){
+  setLoading(true);
+  google.script.run
+    .withSuccessHandler(posts=>{setLoading(false);APP.posts=posts;renderPostCards(posts);})
+    .withFailureHandler(err=>{setLoading(false);toast('Feed error: '+err.message,'error');})
+    .getPosts(50,APP.user.email);
+}
+
+function renderPostCards(posts){
+  const feed=document.getElementById('posts-feed');
+  if(!feed)return;
+  const isAdmin=APP.user.role==='Admin';
+  if(!posts.length){
+    feed.innerHTML=`<div class="text-center py-14 text-gray-400 fade-in"><div class="text-5xl mb-3">📭</div><p class="font-medium">No posts yet</p><p class="text-sm mt-1">${isAdmin?'Create the first post above!':'Check back soon for updates.'}</p></div>`;
+    return;
+  }
+  feed.innerHTML=posts.map(p=>buildPostCard(p,isAdmin)).join('');
+}
+
+function buildPostCard(p,isAdmin){
+  const cfg=POST_TYPES[p.type]||POST_TYPES['Announcement'];
+  const pinHtml=p.isPinned?`<span class="text-xs font-semibold text-maroon-700 bg-maroon-50 px-2 py-0.5 rounded-full flex items-center gap-1">📌 Pinned</span>`:'';
+  const eventHtml=(p.type==='Event'&&(p.eventDate||p.eventLoc))?`
+    <div class="mt-2.5 bg-blue-50 rounded-xl p-3 flex flex-wrap gap-4">
+      ${p.eventDate?`<span class="text-xs text-blue-700 font-semibold">📅 ${fmtDate(p.eventDate)}</span>`:''}
+      ${p.eventLoc?`<span class="text-xs text-blue-700 font-semibold">📍 ${esc(p.eventLoc)}</span>`:''}
+    </div>`:'';
+  const attachHtml=p.attachLink?`<a href="${p.attachLink}" target="_blank" rel="noopener noreferrer" class="mt-2.5 flex items-center gap-1.5 text-xs font-semibold text-maroon-700 hover:underline">📎 View Attachment</a>`:'';
+  const adminActions=isAdmin?`
+    <div class="flex gap-1 ml-auto">
+      <button onclick="doTogglePin('${p.postId}',${!p.isPinned})" class="text-xs px-2 py-1 rounded-lg hover:bg-gray-100 text-gray-400 transition" title="${p.isPinned?'Unpin':'Pin'}">${p.isPinned?'📍 Unpin':'📌 Pin'}</button>
+      <button onclick="doDeletePost('${p.postId}')" title="Delete post" class="p-1.5 rounded-lg hover:bg-red-50 text-red-400 hover:text-red-600 transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+      </button>
+    </div>`:'';
+  return `
+    <div class="post-card ${cfg.cls} ${p.isPinned?'post-pinned':''} fade-in" id="post-${p.postId}">
+      <div class="p-4 pb-3">
+        <div class="flex items-start gap-3">
+          <button onclick="showUserProfile('${p.authorEmail}')" class="shrink-0 focus:outline-none">
+            <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white overflow-hidden hover:opacity-80 transition" style="background:${cfg.color}">
+              ${p.authorAvatar?`<img src="data:image/jpeg;base64,${p.authorAvatar}" class="w-full h-full object-cover"/>`:(p.authorName||'?').slice(0,2).toUpperCase()}
+            </div>
+          </button>
+          <div class="flex-1 min-w-0">
+            <div class="flex flex-wrap items-center gap-2">
+              <button onclick="showUserProfile('${p.authorEmail}')" class="text-sm font-bold text-gray-800 hover:text-maroon-700 transition">${esc(p.authorName||'Admin')}</button>
+              <span class="text-xs font-semibold px-2 py-0.5 rounded-full" style="background:${cfg.bg};color:${cfg.color}">${cfg.icon} ${cfg.label}</span>
+              ${pinHtml}
+            </div>
+            <div class="text-xs text-gray-400 mt-0.5">${timeAgo(p.createdAt)}</div>
+          </div>
+          ${adminActions}
+        </div>
+        <h3 class="text-sm font-bold text-gray-800 mt-3">${esc(p.title)}</h3>
+        <p class="text-sm text-gray-600 mt-1.5 leading-relaxed whitespace-pre-line" id="content-${p.postId}">${esc(p.content.length>280?p.content.slice(0,280)+'…':p.content)}</p>
+        ${p.content.length>280?`<button onclick="expandContent('${p.postId}',\`${encodeURIComponent(p.content)}\`)" class="text-xs text-maroon-700 font-semibold hover:underline mt-1">See more</button>`:''}
+        ${eventHtml}${attachHtml}
+      </div>
+      <div class="px-4 py-2 border-t border-gray-50 flex items-center gap-4">
+        <button onclick="doToggleLike('${p.postId}',this)" class="like-btn flex items-center gap-1.5 text-xs font-semibold transition rounded-lg px-2 py-1.5 hover:bg-maroon-50 ${p.userLiked?'text-maroon-700 liked':'text-gray-400'}">
+          <svg class="w-4 h-4" fill="${p.userLiked?'#7b0019':'none'}" stroke="${p.userLiked?'#7b0019':'currentColor'}" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+          </svg>
+          <span id="like-count-${p.postId}">${p.likeCount}</span>
+        </button>
+        <button onclick="toggleComments('${p.postId}')" class="flex items-center gap-1.5 text-xs font-semibold text-gray-400 hover:text-maroon-700 hover:bg-maroon-50 transition rounded-lg px-2 py-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+          </svg>
+          <span id="comment-count-${p.postId}">${p.commentCount}</span> Comment${p.commentCount!==1?'s':''}
+        </button>
+        <span class="ml-auto text-xs text-gray-300">${fmtShort(p.createdAt)}</span>
+      </div>
+      <div class="comments-section px-4 pb-4 border-t border-gray-50" id="comments-${p.postId}">
+        <div id="comments-list-${p.postId}" class="pt-3 space-y-2">
+          <div class="text-xs text-gray-400 text-center py-2">Loading comments…</div>
+        </div>
+        <div class="mt-3 flex gap-2">
+          <div class="w-7 h-7 rounded-full bg-maroon-700 text-white flex items-center justify-center text-xs font-bold shrink-0">${(APP.user.fullName||'?').slice(0,1)}</div>
+          <div class="flex-1 flex gap-2">
+            <input id="comment-input-${p.postId}" type="text" placeholder="Write a comment…" maxlength="500"
+                   class="flex-1 px-3 py-1.5 text-xs border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-maroon-200"
+                   onkeydown="if(event.key==='Enter')doAddComment('${p.postId}')"/>
+            <button onclick="doAddComment('${p.postId}')" class="px-3 py-1.5 bg-maroon-700 text-white text-xs font-bold rounded-full hover:bg-maroon-800 transition">Send</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function expandContent(postId,encoded){const el=document.getElementById('content-'+postId);if(el){el.textContent=decodeURIComponent(encoded);el.nextElementSibling?.remove();}}
+
+function doToggleLike(postId,btn){
+  const wasLiked=btn.classList.contains('liked');
+  const countEl=document.getElementById('like-count-'+postId);
+  const cur=parseInt(countEl.textContent)||0;
+  if(wasLiked){btn.classList.remove('liked','text-maroon-700');btn.classList.add('text-gray-400');btn.querySelector('svg').setAttribute('fill','none');btn.querySelector('svg').setAttribute('stroke','currentColor');countEl.textContent=Math.max(0,cur-1);}
+  else{btn.classList.add('liked','text-maroon-700');btn.classList.remove('text-gray-400');btn.querySelector('svg').setAttribute('fill','#7b0019');btn.querySelector('svg').setAttribute('stroke','#7b0019');countEl.textContent=cur+1;}
+  google.script.run
+    .withSuccessHandler(res=>{if(res.success)countEl.textContent=res.likeCount;})
+    .withFailureHandler(()=>toast('Could not update like.','error'))
+    .toggleLike(postId,APP.user.email);
+}
+
+function toggleComments(postId){
+  const s=document.getElementById('comments-'+postId);
+  if(s.classList.contains('open')){s.classList.remove('open');return;}
+  s.classList.add('open');loadComments(postId);
+}
+function loadComments(postId){
+  google.script.run
+    .withSuccessHandler(c=>renderComments(postId,c))
+    .withFailureHandler(()=>{const el=document.getElementById('comments-list-'+postId);if(el)el.innerHTML='<p class="text-xs text-red-400 text-center">Failed to load.</p>';})
+    .getComments(postId);
+}
+function renderComments(postId,comments){
+  const el=document.getElementById('comments-list-'+postId);
+  if(!el)return;
+  const isAdmin=APP.user.role==='Admin';
+  if(!comments.length){el.innerHTML='<p class="text-xs text-gray-400 text-center py-1">No comments yet. Be the first!</p>';return;}
+  const topLevel=comments.filter(c=>!c.parentCommentId);
+  const replyMap={};
+  comments.filter(c=>c.parentCommentId).forEach(c=>{if(!replyMap[c.parentCommentId])replyMap[c.parentCommentId]=[];replyMap[c.parentCommentId].push(c);});
+  function buildC(c,isReply){
+    const reps=replyMap[c.commentId]||[];
+    const myInitial=(c.authorName||'?').slice(0,1);
+    const avatarInner=c.authorAvatar?'<img src="data:image/jpeg;base64,'+c.authorAvatar+'" class="w-full h-full object-cover"/>':myInitial;
+    return '<div class="flex gap-2 items-start group" id="comment-'+c.commentId+'">'
+      +'<button onclick="showUserProfile(\''+c.authorEmail+'\')" class="shrink-0 focus:outline-none">'
+      +'<div class="w-6 h-6 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-xs font-bold hover:bg-maroon-100 hover:text-maroon-700 transition overflow-hidden">'+avatarInner+'</div>'
+      +'</button>'
+      +'<div class="flex-1">'
+      +'<div class="bg-gray-50 rounded-2xl px-3 py-2">'
+      +'<div class="flex items-center justify-between gap-2">'
+      +'<button onclick="showUserProfile(\''+c.authorEmail+'\')" class="text-xs font-bold text-gray-700 hover:text-maroon-700 transition">'+esc(c.authorName||c.authorEmail)+'</button>'
+      +'<div class="flex items-center gap-2">'
+      +'<span class="text-xs text-gray-400">'+timeAgo(c.createdAt)+'</span>'
+      +(isAdmin?'<button onclick="doDeleteComment(\''+c.commentId+'\',\''+postId+'\')" class="text-xs text-red-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition">✕</button>':'')
+      +'</div></div>'
+      +'<p class="text-xs text-gray-600 mt-0.5 whitespace-pre-line">'+esc(c.text)+'</p>'
+      +'</div>'
+      +(!isReply?'<button onclick="toggleReplyBox(\''+c.commentId+'\',\''+postId+'\',\''+esc(c.authorName||'')+'\',false)" class="text-xs text-gray-400 hover:text-maroon-700 ml-2 mt-1 font-medium transition">↩ Reply</button>':'')
+      +(reps.length?'<div class="reply-thread mt-1.5 space-y-1.5">'+reps.map(function(r){return buildC(r,true);}).join('')+'</div>':'')
+      +(!isReply?'<div class="hidden mt-2 ml-2" id="reply-box-'+c.commentId+'">'
+        +'<div class="flex gap-2 items-center">'
+        +'<div class="w-5 h-5 rounded-full bg-maroon-700 text-white flex items-center justify-center text-xs font-bold shrink-0 overflow-hidden">'+(APP.user.avatar?'<img src="data:image/jpeg;base64,'+APP.user.avatar+'" class="w-full h-full object-cover"/>':((APP.user.fullName||'?').slice(0,1)))+'</div>'
+        +'<input id="reply-input-'+c.commentId+'" type="text" placeholder="Replying to '+esc(c.authorName||'user')+'…" maxlength="500"'
+        +' class="flex-1 px-3 py-1.5 text-xs border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-maroon-200"'
+        +' onkeydown="if(event.key===\'Enter\')doAddReply(\''+postId+'\',\''+c.commentId+'\')"/>'
+        +'<button onclick="doAddReply(\''+postId+'\',\''+c.commentId+'\')" class="px-3 py-1.5 bg-maroon-700 text-white text-xs font-bold rounded-full hover:bg-maroon-800 transition">Send</button>'
+        +'<button onclick="toggleReplyBox(\''+c.commentId+'\',\''+postId+'\',\'\',true)" class="text-gray-400 hover:text-red-400 text-xs px-1">✕</button>'
+        +'</div></div>':'')
+      +'</div></div>';
+  }
+  el.innerHTML=topLevel.map(function(c){return buildC(c,false);}).join('');
+  const cc=document.getElementById('comment-count-'+postId);
+  if(cc)cc.textContent=comments.length;
+}
+function toggleReplyBox(commentId,postId,authorName,hide){
+  const box=document.getElementById('reply-box-'+commentId);
+  if(!box)return;
+  if(hide){box.classList.add('hidden');return;}
+  box.classList.toggle('hidden');
+  if(!box.classList.contains('hidden')) document.getElementById('reply-input-'+commentId)?.focus();
+}
+function doAddReply(postId,parentCommentId){
+  const input=document.getElementById('reply-input-'+parentCommentId);
+  const text=(input?.value||'').trim();
+  if(!text)return;
+  input.value='';input.disabled=true;
+  google.script.run
+    .withSuccessHandler(res=>{input.disabled=false;if(res.success){document.getElementById('reply-box-'+parentCommentId)?.classList.add('hidden');loadComments(postId);}else{toast(res.message,'error');input.value=text;}})
+    .withFailureHandler(err=>{input.disabled=false;toast(err.message,'error');input.value=text;})
+    .addComment(postId,APP.user.email,APP.user.fullName,text,parentCommentId);
+}
+function doAddComment(postId){
+  const input=document.getElementById('comment-input-'+postId);
+  const text=(input?.value||'').trim();
+  if(!text)return;
+  input.value='';input.disabled=true;
+  google.script.run
+    .withSuccessHandler(res=>{input.disabled=false;if(res.success)loadComments(postId);else{toast(res.message,'error');input.value=text;}})
+    .withFailureHandler(err=>{input.disabled=false;toast(err.message,'error');input.value=text;})
+    .addComment(postId,APP.user.email,APP.user.fullName,text,'');
+}
+function doDeleteComment(commentId,postId){
+  showConfirm('Delete this comment?', function(){
+    google.script.run
+      .withSuccessHandler(res=>{if(res.success)loadComments(postId);else toast(res.message,'error');})
+      .withFailureHandler(err=>toast(err.message,'error'))
+      .deleteComment(commentId,APP.user.email);
+  });
+}
+function doTogglePin(postId,newState){
+  setLoading(true);
+  google.script.run
+    .withSuccessHandler(res=>{setLoading(false);if(res.success){toast(newState?'Post pinned.':'Post unpinned.','success');loadFeed();}else toast(res.message,'error');})
+    .withFailureHandler(err=>{setLoading(false);toast(err.message,'error');})
+    .togglePin(postId,newState,APP.user.email);
+}
+function doDeletePost(postId){
+  showConfirm('Delete this post and all its comments?', function(){
+    setLoading(true);
+    google.script.run
+      .withSuccessHandler(res=>{setLoading(false);toast(res.message,res.success?'success':'error');if(res.success)document.getElementById('post-'+postId)?.remove();})
+      .withFailureHandler(err=>{setLoading(false);toast(err.message,'error');})
+      .deletePost(postId,APP.user.email);
+  });
+}
+
+
+// ════════════════════════════════════════════════════════════
+// 📊  DASHBOARD
+// ════════════════════════════════════════════════════════════
+function renderDashboard(){
+  setLoading(true);
+  google.script.run
+    .withSuccessHandler(s=>{
+      setLoading(false);
+      document.getElementById('page-content').innerHTML=`
+        <div class="fade-in space-y-5">
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            ${[{i:'📁',l:'Folders',v:s.totalFolders,c:'text-maroon-700'},{i:'📄',l:'Files',v:s.totalFiles,c:'text-blue-600'},
+               {i:'📰',l:'Posts',v:s.totalPosts,c:'text-pink-600'},
+               {i:'👥',l:'Users',v:s.totalUsers,c:'text-green-600'}].map(x=>`
+              <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                <div class="text-2xl mb-1">${x.i}</div>
+                <div class="text-3xl font-black ${x.c}">${x.v}</div>
+                <div class="text-xs text-gray-400 font-medium mt-0.5">${x.l}</div>
+              </div>`).join('')}
+          </div>
+          <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+            <h2 class="text-sm font-bold text-gray-700 mb-3">⚡ Quick Actions</h2>
+            <div class="flex flex-wrap gap-2">
+              ${[['feed','✍️ New Post','bg-maroon-700 text-white'],['folders','📁 Folder','bg-maroon-50 text-maroon-700 border border-maroon-200'],
+                 ['upload','📤 Upload','bg-gray-100 text-gray-700'],
+                 ['users','👥 Users','bg-gray-100 text-gray-700']].map(([id,label,cls])=>
+                `<button onclick="navigateTo('${id}')" class="px-4 py-2 text-sm font-semibold rounded-xl hover:opacity-90 transition ${cls}">${label}</button>`).join('')}
+            </div>
+          </div>
+        </div>`;
+    })
+    .withFailureHandler(err=>{setLoading(false);toast(err.message,'error');})
+    .getStats();
+}
+
+
+// ════════════════════════════════════════════════════════════
+// 📁  FOLDERS
+// ════════════════════════════════════════════════════════════
+function renderFolders(){
+  const isAdmin=APP.user.role==='Admin';
+  document.getElementById('page-content').innerHTML=`
+    <div class="fade-in space-y-5 max-w-3xl">
+      ${isAdmin?`<div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+        <h2 class="text-sm font-bold text-gray-700 mb-3">📁 Create New Folder</h2>
+        <div class="flex gap-2">
+          <input id="folder-name-input" type="text" placeholder="Folder name…" maxlength="100"
+                 class="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-maroon-200"
+                 onkeydown="if(event.key==='Enter')doCreateFolder()"/>
+          <button onclick="doCreateFolder()" id="create-folder-btn"
+                  class="px-5 py-2.5 bg-maroon-700 text-white text-sm font-bold rounded-xl hover:bg-maroon-800 transition">+ Create</button>
+        </div>
+      </div>`:''}
+      <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+        <h2 class="text-sm font-bold text-gray-700 mb-3">${isAdmin?'All Folders':'📁 Company Folders'}</h2>
+        <div id="folders-list">${shimmerList(3)}</div>
+      </div>
+    </div>`;
+  loadFoldersList();
+}
+function loadFoldersList(){
+  google.script.run
+    .withSuccessHandler(folders=>{
+      APP.folders=folders;
+      const el=document.getElementById('folders-list');if(!el)return;
+      const isAdmin=APP.user.role==='Admin';
+      if(!folders.length){el.innerHTML='<p class="text-sm text-gray-400 text-center py-6">No folders yet.</p>';return;}
+      var rows=folders.map(function(f){
+        return '<tr class="border-b border-gray-50 hover:bg-maroon-50/30 cursor-pointer group">'
+          +'<td class="py-2.5 pr-4 font-semibold text-gray-800" onclick="openFolderContents(\''+esc(f.folderId)+'\',\''+esc(f.folderName)+'\')">'
+          +'<span class="flex items-center gap-2">📁 '+esc(f.folderName)+' <span class="text-xs text-maroon-400 opacity-0 group-hover:opacity-100 transition font-normal">👉 Open</span></span>'
+          +'</td>'
+          +'<td class="py-2.5 pr-4 text-xs text-gray-500" onclick="openFolderContents(\''+esc(f.folderId)+'\',\''+esc(f.folderName)+'\')">'+esc(f.createdBy)+'</td>'
+          +'<td class="py-2.5 pr-4 text-xs text-gray-400" onclick="openFolderContents(\''+esc(f.folderId)+'\',\''+esc(f.folderName)+'\')">'+fmtShort(f.createdAt)+'</td>'
+          +(isAdmin?'<td class="py-2.5 text-right">'
+            +'<button onclick="event.stopPropagation();openFolderUpload(\''+esc(f.folderId)+'\',\''+esc(f.folderName)+'\')" class="text-xs text-maroon-600 hover:text-maroon-800 font-semibold mr-3">📤 Upload</button>'
+            +'<button onclick="event.stopPropagation();doDeleteFolder(\''+esc(f.folderId)+'\',\''+esc(f.folderName)+'\')" class="text-xs text-red-400 hover:text-red-600 font-medium">🗑 Delete</button>'
+            +'</td>':'')
+          +'</tr>';
+      }).join('');
+      el.innerHTML='<div class="overflow-x-auto"><table class="w-full text-sm">'
+        +'<thead><tr class="text-xs text-gray-400 uppercase tracking-wide border-b">'
+        +'<th class="pb-2 pr-4 text-left">Name</th><th class="pb-2 pr-4 text-left">Created By</th><th class="pb-2 pr-4 text-left">Date</th>'
+        +(isAdmin?'<th class="pb-2 text-right">Actions</th>':'')
+        +'</tr></thead><tbody>'+rows+'</tbody></table></div>';
+    })
+    .withFailureHandler(err=>toast(err.message,'error'))
+    .getFolders();
+}
+function doCreateFolder(){
+  const input=document.getElementById('folder-name-input');const name=input.value.trim();
+  if(!name){toast('Enter a folder name.','error');return;}
+  const btn=document.getElementById('create-folder-btn');btn.disabled=true;btn.textContent='Creating…';setLoading(true);
+  google.script.run
+    .withSuccessHandler(res=>{setLoading(false);btn.disabled=false;btn.textContent='+ Create';if(res.success){toast(res.message,'success');input.value='';loadFoldersList();}else toast(res.message,'error');})
+    .withFailureHandler(err=>{setLoading(false);btn.disabled=false;btn.textContent='+ Create';toast(err.message,'error');})
+    .createFolder(name,APP.user.email);
+}
+
+function doDeleteFolder(folderId,folderName){
+  showConfirm('Delete folder "<b>'+esc(folderName)+'</b>" and all its files?', function(){
+    setLoading(true);
+    google.script.run
+      .withSuccessHandler(res=>{setLoading(false);toast(res.message,res.success?'success':'error');if(res.success)loadFoldersList();})
+      .withFailureHandler(err=>{setLoading(false);toast(err.message,'error');})
+      .deleteFolder(folderId,APP.user.email);
+  });
+}
+function openFolderUpload(folderId,folderName){
+  _preselectedFolder={id:folderId,name:folderName};
+  navigateTo('upload');
+}
+let _preselectedFolder=null;
+
+function openFolderContents(folderId,folderName){
+  const isAdmin=APP.user.role==='Admin';
+  const EI={pdf:'📕',doc:'📘',docx:'📘',xls:'📗',xlsx:'📗',ppt:'📙',pptx:'📙',png:'🖼️',jpg:'🖼️',jpeg:'🖼️',txt:'📝'};
+  document.getElementById('page-content').innerHTML=`
+    <div class="fade-in space-y-5 max-w-3xl">
+      <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+        <div class="flex items-center gap-3 mb-4 flex-wrap">
+          <button onclick="renderFolders()" class="flex items-center gap-1 text-sm text-maroon-700 font-semibold hover:underline">← Folders</button>
+          <span class="text-gray-200 hidden sm:inline">|</span>
+          <h2 class="text-sm font-bold text-gray-700 flex items-center gap-1.5">📁 <span>${esc(folderName)}</span></h2>
+          ${isAdmin?`<button onclick="openFolderUpload('${esc(folderId)}','${esc(folderName)}')" class="ml-auto px-4 py-2 bg-maroon-700 text-white text-xs font-bold rounded-xl hover:bg-maroon-800 transition">📤 Upload Here</button>`:''}
+        </div>
+        <div id="folder-contents">${shimmerList(4)}</div>
+      </div>
+    </div>`;
+  setLoading(true);
+  google.script.run
+    .withSuccessHandler(function(files){
+      setLoading(false);
+      const el=document.getElementById('folder-contents');if(!el)return;
+      if(!files.length){el.innerHTML='<p class="text-sm text-gray-400 text-center py-8">No files in this folder yet.</p>';return;}
+      var rows=files.map(function(f){
+        const ext=(f.fileName||'').split('.').pop().toLowerCase();
+        return '<tr class="folder-file-row border-b border-gray-50 cursor-pointer">'
+          +'<td class="py-2.5 pr-4 font-medium text-gray-800" onclick="previewFile(\''+f.fileId+'\',\''+esc(f.fileName)+'\')">'
+          +'<span class="flex items-center gap-2">'+(EI[ext]||'📄')+' '+esc(f.fileName)+'</span>'
+          +'</td>'
+          +'<td class="py-2.5 pr-4 text-xs text-gray-500">'+esc(f.uploadedBy)+'</td>'
+          +'<td class="py-2.5 pr-4 text-xs text-gray-400">'+fmtShort(f.uploadedAt)+'</td>'
+          +'<td class="py-2.5 text-right">'
+          +'<button onclick="previewFile(\''+f.fileId+'\',\''+esc(f.fileName)+'\')" class="text-xs text-maroon-600 hover:text-maroon-800 font-semibold mr-2">👁 Preview</button>'
+          +(isAdmin?'<button onclick="doDeleteFile(\''+esc(f.fileId)+'\',\''+esc(f.fileName)+'\')" class="text-xs text-red-400 hover:text-red-600 font-medium">🗑</button>':'')
+          +'</td></tr>';
+      }).join('');
+      el.innerHTML='<div class="overflow-x-auto"><table class="w-full text-sm">'
+        +'<thead><tr class="text-xs text-gray-400 uppercase tracking-wide border-b">'
+        +'<th class="pb-2 pr-4 text-left">File</th>'
+        +'<th class="pb-2 pr-4 text-left">Uploaded By</th>'
+        +'<th class="pb-2 pr-4 text-left">Date</th>'
+        +'<th class="pb-2 text-right">Actions</th>'
+        +'</tr></thead><tbody>'+rows+'</tbody></table></div>';
+    })
+    .withFailureHandler(function(err){setLoading(false);toast(err.message,'error');})
+    .getFiles(folderId);
+}
+
+
+// ════════════════════════════════════════════════════════════
+// 📤  UPLOAD  (multiple files)
+// ════════════════════════════════════════════════════════════
+let _selectedFiles=[];
+function renderUpload(){
+  const pre=_preselectedFolder;
+  _preselectedFolder=null;
+  document.getElementById('page-content').innerHTML=`
+    <div class="fade-in max-w-2xl">
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 space-y-4">
+        <div class="flex items-center gap-2">
+          <h2 class="text-sm font-bold text-gray-700">📤 Upload Documents</h2>
+          ${pre?`<span class="text-xs font-semibold px-2.5 py-1 bg-maroon-50 text-maroon-700 rounded-full">📁 ${esc(pre.name)}</span>`:''}
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">Target Folder *</label>
+          <select id="upload-folder-select" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-maroon-200"><option>Loading…</option></select>
+        </div>
+        <div id="drop-zone" onclick="document.getElementById('file-input').click()"
+             ondragover="event.preventDefault();this.classList.add('drag-over')"
+             ondragleave="this.classList.remove('drag-over')"
+             ondrop="handleDrop(event)"
+             class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-maroon-400 transition">
+          <div class="text-4xl mb-2">📂</div>
+          <p class="text-sm font-semibold text-gray-600">Click or drag & drop files here</p>
+          <p class="text-xs text-gray-400 mt-1">PDF, Word, Excel, Images — max 10 MB each · multiple files allowed</p>
+        </div>
+        <input type="file" id="file-input" class="hidden" multiple
+               accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.ppt,.pptx,.txt"
+               onchange="onFilesSelected(this.files)"/>
+        <div id="file-list" class="hidden space-y-2"></div>
+        <div id="upload-overall-progress" class="hidden">
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-xs font-semibold text-gray-600" id="upload-progress-label">Uploading…</span>
+            <span class="text-xs text-gray-400" id="upload-progress-count"></span>
+          </div>
+          <div class="w-full bg-gray-100 rounded-full h-2">
+            <div id="upload-progress-bar" class="bg-maroon-700 h-2 rounded-full transition-all duration-300" style="width:0%"></div>
+          </div>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="clearAllFiles()" id="clear-btn" class="hidden px-4 py-2.5 border border-gray-200 text-sm text-gray-500 font-semibold rounded-xl hover:bg-gray-50 transition">🗑 Clear All</button>
+          <button id="upload-btn" onclick="doUploadAllFiles()" class="flex-1 py-2.5 bg-maroon-700 text-white font-bold rounded-xl hover:bg-maroon-800 transition text-sm">📤 Upload All Files</button>
+        </div>
+      </div>
+    </div>`;
+  google.script.run
+    .withSuccessHandler(folders=>{
+      APP.folders=folders;
+      const sel=document.getElementById('upload-folder-select');if(!sel)return;
+      sel.innerHTML=!folders.length?'<option value="">No folders yet.</option>':
+        '<option value="">— Select a folder —</option>'+folders.map(f=>`<option value="${esc(f.folderId)}" data-name="${esc(f.folderName)}">${esc(f.folderName)}</option>`).join('');
+      // Auto-select pre-selected folder if coming from Folders page
+      if(pre&&pre.id){
+        for(let i=0;i<sel.options.length;i++){
+          if(sel.options[i].value===pre.id){sel.selectedIndex=i;break;}
+        }
+      }
+    })
+    .withFailureHandler(err=>toast(err.message,'error'))
+    .getFolders();
+}
+
+function handleDrop(e){
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.remove('drag-over');
+  onFilesSelected(e.dataTransfer.files);
+}
+
+function onFilesSelected(files){
+  if(!files||!files.length) return;
+  const icons={pdf:'📕',doc:'📘',docx:'📘',xls:'📗',xlsx:'📗',ppt:'📙',pptx:'📙',png:'🖼️',jpg:'🖼️',jpeg:'🖼️',txt:'📝'};
+  let skipped=0;
+  Array.from(files).forEach(f=>{
+    if(f.size>10*1024*1024){skipped++;return;} // GAS limit ~10MB per file
+    // avoid duplicates
+    if(_selectedFiles.find(x=>x.name===f.name&&x.size===f.size)) return;
+    _selectedFiles.push(f);
+  });
+  if(skipped) toast(`${skipped} file(s) skipped — over 10 MB limit (GAS restriction).`,'error');
+  renderFileList();
+}
+
+function renderFileList(){
+  const icons={pdf:'📕',doc:'📘',docx:'📘',xls:'📗',xlsx:'📗',ppt:'📙',pptx:'📙',png:'🖼️',jpg:'🖼️',jpeg:'🖼️',txt:'📝'};
+  const listEl=document.getElementById('file-list');
+  const dropEl=document.getElementById('drop-zone');
+  const clearBtn=document.getElementById('clear-btn');
+  if(!_selectedFiles.length){
+    listEl.classList.add('hidden');dropEl.classList.remove('hidden');clearBtn.classList.add('hidden');return;
+  }
+  dropEl.classList.add('hidden');
+  listEl.classList.remove('hidden');
+  clearBtn.classList.remove('hidden');
+  listEl.innerHTML=_selectedFiles.map((f,i)=>{
+    const ext=f.name.split('.').pop().toLowerCase();
+    const size=f.size>1048576?(f.size/1048576).toFixed(1)+' MB':(f.size/1024).toFixed(0)+' KB';
+    return`<div class="flex items-center gap-3 bg-gray-50 rounded-xl px-3 py-2.5" id="file-row-${i}">
+      <span class="text-xl shrink-0">${icons[ext]||'📄'}</span>
+      <div class="flex-1 min-w-0">
+        <div class="text-xs font-semibold text-gray-800 truncate">${esc(f.name)}</div>
+        <div class="text-xs text-gray-400">${size} · ${ext.toUpperCase()}</div>
+      </div>
+      <div id="file-status-${i}" class="text-xs font-semibold text-gray-400 shrink-0">Pending</div>
+      <button onclick="removeFile(${i})" id="file-remove-${i}" class="text-gray-300 hover:text-red-400 text-sm shrink-0 transition">✕</button>
+    </div>`;
+  }).join('');
+  // Add more files button
+  listEl.innerHTML+=`<button onclick="document.getElementById('file-input').click()"
+    class="w-full py-2 border-2 border-dashed border-gray-200 rounded-xl text-xs font-semibold text-gray-400 hover:border-maroon-400 hover:text-maroon-600 transition">
+    + Add More Files
+  </button>`;
+  document.getElementById('upload-btn').textContent=`📤 Upload ${_selectedFiles.length} File${_selectedFiles.length>1?'s':''}`;
+}
+
+function removeFile(i){
+  _selectedFiles.splice(i,1);
+  renderFileList();
+}
+
+function clearAllFiles(){
+  _selectedFiles=[];
+  document.getElementById('file-input').value='';
+  renderFileList();
+}
+
+function doUploadAllFiles(){
+  const sel=document.getElementById('upload-folder-select');
+  if(!sel.value){toast('Select a folder first.','error');return;}
+  if(!_selectedFiles.length){toast('Add at least one file.','error');return;}
+
+  const folderId=sel.value;
+  const folderName=sel.options[sel.selectedIndex]?.dataset?.name||'';
+  const btn=document.getElementById('upload-btn');
+  btn.disabled=true;
+
+  const progressWrap=document.getElementById('upload-overall-progress');
+  const progressBar=document.getElementById('upload-progress-bar');
+  const progressLabel=document.getElementById('upload-progress-label');
+  const progressCount=document.getElementById('upload-progress-count');
+  progressWrap.classList.remove('hidden');
+
+  const total=_selectedFiles.length;
+  let current=0, done=0, failed=0;
+
+  function uploadNext(){
+    if(current>=total){
+      // All done
+      btn.disabled=false;
+      progressLabel.textContent=`Done! ${done} uploaded${failed?`, ${failed} failed`:''}`;
+      progressCount.textContent='';
+      if(done>0) toast(`${done} file${done>1?'s':''} uploaded successfully.`,'success');
+      if(failed>0) toast(`${failed} file${failed>1?'s':''} failed to upload.`,'error');
+      setTimeout(()=>{
+        _selectedFiles=[];
+        document.getElementById('file-input').value='';
+        progressWrap.classList.add('hidden');
+        progressBar.style.width='0%';
+        renderFileList();
+      },2500);
+      return;
+    }
+
+    const i=current;
+    const file=_selectedFiles[i];
+    const statusEl=document.getElementById('file-status-'+i);
+    const removeEl=document.getElementById('file-remove-'+i);
+    if(statusEl) statusEl.innerHTML='<span class="text-blue-500">Uploading…</span>';
+    if(removeEl) removeEl.classList.add('hidden');
+    progressLabel.textContent=`Uploading "${file.name}"…`;
+    progressCount.textContent=`${i+1} / ${total}`;
+    progressBar.style.width=((i+1)/total*100)+'%';
+
+    const reader=new FileReader();
+    reader.onload=function(e){
+      const base64=e.target.result.split(',')[1];
+      google.script.run
+        .withSuccessHandler(function(res){
+          current++;
+          if(res && res.success){
+            done++;
+            if(statusEl) statusEl.innerHTML='<span class="text-green-600">✅ Done</span>';
+          } else {
+            failed++;
+            const msg=(res&&res.message)||'Unknown error';
+            if(statusEl) statusEl.innerHTML=`<span class="text-red-500" title="${esc(msg)}">❌ Failed</span>`;
+            toast('Failed: '+msg,'error');
+          }
+          uploadNext();
+        })
+        .withFailureHandler(function(err){
+          current++;
+          failed++;
+          const msg=(err&&err.message)||err||'Unknown error';
+          if(statusEl) statusEl.innerHTML=`<span class="text-red-500" title="${esc(msg)}">❌ Error</span>`;
+          toast('Upload error: '+msg,'error');
+          uploadNext();
+        })
+        .uploadFile({
+          name       : file.name,
+          mimeType   : file.type||'application/octet-stream',
+          base64     : base64,
+          folderId   : folderId,
+          folderName : folderName,
+          uploadedBy : APP.user.email
+        });
+    };
+    reader.onerror=function(){
+      current++;failed++;
+      if(statusEl) statusEl.innerHTML='<span class="text-red-500">❌ Read Error</span>';
+      toast('Could not read file: '+file.name,'error');
+      uploadNext();
+    };
+    reader.readAsDataURL(file);
+  }
+
+  uploadNext();
+}
+
+
+// ════════════════════════════════════════════════════════════
+// 📄  DOCUMENTS
+// ════════════════════════════════════════════════════════════
+let _docView='grid';
+function renderDocuments(){
+  const isAdmin=APP.user.role==='Admin';
+  document.getElementById('page-content').innerHTML=`
+    <div class="fade-in space-y-4">
+      <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-wrap gap-3 items-center">
+        <div class="relative flex-1 min-w-40">
+          <svg class="absolute left-3 top-2.5 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          <input type="text" id="doc-search" placeholder="Search documents…" class="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-maroon-200" oninput="filterDocuments(this.value)"/>
+        </div>
+        <select id="folder-filter" class="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none" onchange="filterDocuments(document.getElementById('doc-search').value)">
+          <option value="">All Folders</option>
+        </select>
+        <div class="flex gap-1">
+          <button id="view-grid" onclick="setDocView('grid')" class="p-2 rounded-lg bg-maroon-700 text-white text-xs">⊞</button>
+          <button id="view-list" onclick="setDocView('list')" class="p-2 rounded-lg bg-gray-100 text-gray-600 text-xs">☰</button>
+        </div>
+      </div>
+      <div class="flex items-center px-1"><span class="text-xs text-gray-400" id="docs-count">Loading…</span></div>
+      <div id="docs-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">${shimmerCards(8)}</div>
+    </div>`;
+  setLoading(true);
+  google.script.run
+    .withSuccessHandler(files=>{
+      setLoading(false);APP.files=files;
+      const ff=document.getElementById('folder-filter');
+      if(ff){const flds=[...new Map(files.map(f=>[f.folderId,f])).values()];ff.innerHTML='<option value="">All Folders</option>'+flds.map(f=>`<option value="${esc(f.folderId)}">${esc(f.folderName)}</option>`).join('');}
+      renderDocCards(files,isAdmin);
+    })
+    .withFailureHandler(err=>{setLoading(false);toast(err.message,'error');})
+    .getFiles();
+}
+function setDocView(m){_docView=m;document.getElementById('view-grid').className='p-2 rounded-lg text-xs '+(m==='grid'?'bg-maroon-700 text-white':'bg-gray-100 text-gray-600');document.getElementById('view-list').className='p-2 rounded-lg text-xs '+(m==='list'?'bg-maroon-700 text-white':'bg-gray-100 text-gray-600');filterDocuments(document.getElementById('doc-search')?.value||'');}
+function filterDocuments(q){const fId=document.getElementById('folder-filter')?.value||'';const isAdmin=APP.user.role==='Admin';let files=APP.files;if(fId)files=files.filter(f=>f.folderId===fId);if(q.trim())files=files.filter(f=>f.fileName.toLowerCase().includes(q.toLowerCase())||f.folderName.toLowerCase().includes(q.toLowerCase()));renderDocCards(files,isAdmin);}
+function renderDocCards(files,isAdmin){
+  const grid=document.getElementById('docs-grid');const counter=document.getElementById('docs-count');if(!grid)return;
+  if(counter)counter.textContent=`${files.length} document${files.length!==1?'s':''} found`;
+  const EI={pdf:'📕',doc:'📘',docx:'📘',xls:'📗',xlsx:'📗',ppt:'📙',pptx:'📙',png:'🖼️',jpg:'🖼️',jpeg:'🖼️',txt:'📝'};
+  if(!files.length){grid.className='';grid.innerHTML='<div class="text-center py-16 text-gray-400"><div class="text-5xl mb-2">🔍</div><p>No documents found</p></div>';return;}
+  if(_docView==='grid'){
+    grid.className='grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4';
+    grid.innerHTML=files.map(f=>{const ext=f.fileName.split('.').pop().toLowerCase();return`
+      <div class="file-card bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col">
+        <div class="text-3xl mb-2">${EI[ext]||'📄'}</div>
+        <div class="flex-1"><div class="text-xs font-semibold text-gray-800 mb-1 line-clamp-2">${esc(f.fileName)}</div>
+          <div class="text-xs text-maroon-600 font-medium">📁 ${esc(f.folderName)}</div>
+          <div class="text-xs text-gray-400 mt-0.5">${fmtShort(f.uploadedAt)}</div></div>
+        <div class="mt-3 flex gap-1.5">
+          <button onclick="previewFile('${f.fileId}','${esc(f.fileName)}')" class="flex-1 py-2 bg-maroon-700 text-white text-xs font-bold rounded-lg text-center hover:bg-maroon-800 transition">👁 Preview</button>
+          ${isAdmin?`<button onclick="doDeleteFile('${esc(f.fileId)}','${esc(f.fileName)}')" class="p-2 text-red-400 hover:bg-red-50 rounded-lg text-xs">🗑</button>`:''}
+        </div>
+      </div>`;}).join('');
+  } else {
+    grid.className='';
+    grid.innerHTML=`<div class="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100"><table class="w-full text-sm">
+      <thead><tr class="bg-maroon-700 text-white text-xs font-semibold"><th class="px-4 py-3 text-left">File</th><th class="px-4 py-3 text-left">Folder</th><th class="px-4 py-3 text-left">Date</th><th class="px-4 py-3 text-right">Action</th></tr></thead>
+      <tbody>${files.map(f=>{const ext=f.fileName.split('.').pop().toLowerCase();return`
+        <tr class="border-b border-gray-50 hover:bg-maroon-50/30">
+          <td class="px-4 py-2.5 font-medium text-gray-800"><span class="mr-1">${EI[ext]||'📄'}</span>${esc(f.fileName)}</td>
+          <td class="px-4 py-2.5 text-xs text-maroon-600 font-medium">${esc(f.folderName)}</td>
+          <td class="px-4 py-2.5 text-xs text-gray-400">${fmtShort(f.uploadedAt)}</td>
+          <td class="px-4 py-2.5 text-right">
+            <button onclick="previewFile('${f.fileId}','${esc(f.fileName)}')" class="px-3 py-1 bg-maroon-700 text-white text-xs font-semibold rounded-lg hover:bg-maroon-800 transition">👁 Preview</button>
+            ${isAdmin?`<button onclick="doDeleteFile('${esc(f.fileId)}','${esc(f.fileName)}')" class="ml-1 px-2 py-1 text-red-400 hover:bg-red-50 rounded-lg text-xs">🗑</button>`:''}
+          </td>
+        </tr>`;}).join('')}</tbody></table></div>`;
+  }
+}
+function doDeleteFile(fileId,fileName){
+  showConfirm('Delete "<b>'+esc(fileName)+'</b>"?', function(){
+    setLoading(true);
+    google.script.run
+      .withSuccessHandler(res=>{
+        setLoading(false);toast(res.message,res.success?'success':'error');
+        if(res.success){
+          // Folder contents view: remove row directly
+          const fcEl=document.getElementById('folder-contents');
+          if(fcEl){ const row=fcEl.querySelector('[onclick*="'+fileId+'"]');if(row)row.closest('tr')?.remove(); return; }
+          // Documents view: filter and redraw
+          APP.files=APP.files.filter(f=>f.fileId!==fileId);
+          renderDocCards(APP.files,APP.user.role==='Admin');
+        }
+      })
+      .withFailureHandler(err=>{setLoading(false);toast(err.message,'error');})
+      .deleteFile(fileId,APP.user.email);
+  });
+}
+
+
+// ════════════════════════════════════════════════════════════
+// 📋  LOGS
+// ════════════════════════════════════════════════════════════
+function renderLogs(){
+  document.getElementById('page-content').innerHTML=`
+    <div class="fade-in max-w-4xl"><div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+        <h2 class="font-bold text-sm text-gray-700">📋 Audit Log</h2>
+        <button onclick="renderLogs()" class="text-xs text-maroon-700 font-semibold hover:underline">↻ Refresh</button>
+      </div>
+      <div id="logs-wrap" class="p-4">${shimmerList(5)}</div>
+    </div></div>`;
+  setLoading(true);
+  google.script.run
+    .withSuccessHandler(logs=>{
+      setLoading(false);const el=document.getElementById('logs-wrap');if(!el)return;
+      if(!logs.length){el.innerHTML='<p class="text-sm text-gray-400 text-center py-8">No logs yet.</p>';return;}
+      const clrs={'Folder Created':'bg-blue-50 text-blue-700','Folder Deleted':'bg-red-50 text-red-600','File Uploaded':'bg-green-50 text-green-700','File Deleted':'bg-red-50 text-red-600','User Registered':'bg-purple-50 text-purple-700','Role Updated':'bg-amber-50 text-amber-700','Post Created':'bg-pink-50 text-pink-700','Post Deleted':'bg-red-50 text-red-600','Admin Login':'bg-maroon-50 text-maroon-700','User Login':'bg-gray-100 text-gray-600'};
+      el.innerHTML=`<div class="overflow-x-auto"><table class="w-full text-xs">
+        <thead><tr class="text-gray-400 uppercase tracking-wide border-b"><th class="pb-2 pr-4 text-left font-semibold">Time</th><th class="pb-2 pr-4 text-left font-semibold">User</th><th class="pb-2 pr-4 text-left font-semibold">Action</th><th class="pb-2 text-left font-semibold">Details</th></tr></thead>
+        <tbody>${logs.map(l=>`<tr class="border-b border-gray-50">
+          <td class="py-2 pr-4 text-gray-400 whitespace-nowrap">${fmtDate(l.timestamp)}</td>
+          <td class="py-2 pr-4 text-gray-600 font-medium">${esc(l.email)}</td>
+          <td class="py-2 pr-4"><span class="px-2 py-0.5 rounded-full font-semibold ${clrs[l.action]||'bg-gray-100 text-gray-600'}">${esc(l.action)}</span></td>
+          <td class="py-2 text-gray-500">${esc(l.details)}</td>
+        </tr>`).join('')}</tbody></table></div>`;
+    })
+    .withFailureHandler(err=>{setLoading(false);toast(err.message,'error');})
+    .getLogs(50);
+}
+
+
+// ════════════════════════════════════════════════════════════
+// 👥  USERS
+// ════════════════════════════════════════════════════════════
+function renderUsers(){
+  document.getElementById('page-content').innerHTML=`
+    <div class="fade-in max-w-4xl"><div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+        <h2 class="font-bold text-sm text-gray-700">👥 User Management</h2>
+        <button onclick="renderUsers()" class="text-xs text-maroon-700 font-semibold hover:underline">↻ Refresh</button>
+      </div>
+      <div id="users-wrap" class="p-4">${shimmerList(4)}</div>
+    </div></div>`;
+  setLoading(true);
+  google.script.run
+    .withSuccessHandler(users=>{
+      setLoading(false);const el=document.getElementById('users-wrap');if(!el)return;
+      if(!users.length){el.innerHTML='<p class="text-sm text-gray-400 text-center py-8">No users yet.</p>';return;}
+      el.innerHTML=`<div class="overflow-x-auto"><table class="w-full text-sm">
+        <thead><tr class="text-xs text-gray-400 uppercase tracking-wide border-b">
+          <th class="pb-2 pr-4 text-left">User</th><th class="pb-2 pr-4 text-left">Email</th>
+          <th class="pb-2 pr-4 text-left">Position</th>
+          <th class="pb-2 pr-4 text-left">Role</th><th class="pb-2 text-right">Change Role</th></tr></thead>
+        <tbody>${users.map(u=>`<tr class="border-b border-gray-50 hover:bg-maroon-50/30">
+          <td class="py-2.5 pr-4">
+            <div class="flex items-center gap-2">
+              <div class="w-7 h-7 rounded-full ${u.avatar?'overflow-hidden':'bg-maroon-100 flex items-center justify-center text-xs font-bold text-maroon-700'}">
+                ${u.avatar?`<img src="data:image/jpeg;base64,${u.avatar}" class="w-full h-full object-cover"/>`:(u.fullName||u.email).slice(0,2).toUpperCase()}
+              </div>
+              <div><div class="text-xs font-semibold text-gray-800">${esc(u.fullName||'—')}</div><div class="text-xs text-gray-400">${esc(u.mobile||'—')}</div></div>
+            </div>
+          </td>
+          <td class="py-2.5 pr-4 text-xs text-gray-500">${esc(u.email)}</td>
+          <td class="py-2.5 pr-4 text-xs text-gray-500">${esc(u.position||u.department||'—')}</td>
+          <td class="py-2.5 pr-4"><span class="text-xs font-bold px-2 py-0.5 rounded-full ${u.role==='Admin'?'bg-maroon-700 text-white':'bg-gray-200 text-gray-600'}">${esc(u.role)}</span></td>
+          <td class="py-2.5 text-right">
+            ${u.email!==APP.user.email?`<select onchange="doUpdateRole('${esc(u.email)}',this.value)" class="text-xs px-2 py-1.5 border border-gray-200 rounded-lg bg-white text-gray-600 focus:outline-none">
+              <option value="Employee" ${u.role==='Employee'?'selected':''}>Employee</option>
+              <option value="Admin" ${u.role==='Admin'?'selected':''}>Admin</option>
+            </select>`:'<span class="text-xs text-gray-300 italic">You</span>'}
+          </td>
+        </tr>`).join('')}</tbody></table></div>`;
+    })
+    .withFailureHandler(err=>{setLoading(false);toast(err.message,'error');})
+    .getAllUsers();
+}
+function doUpdateRole(email,role){
+  setLoading(true);
+  google.script.run
+    .withSuccessHandler(res=>{
+      setLoading(false);
+      toast(res.message,res.success?'success':'error');
+      if(res.success && res.tempPassword){
+        alert('Temporary password for '+email+': '+res.tempPassword+'\n\nShare this with them directly — they cannot use "Forgot Password" to set it themselves yet.');
+      }
+      if(res.success) renderUsers();
+    })
+    .withFailureHandler(err=>{setLoading(false);toast(err.message,'error');})
+    .updateUserRole(email,role,APP.user.email);
+}
+
+
+// ════════════════════════════════════════════════════════════
+// 💀  SKELETONS
+// ════════════════════════════════════════════════════════════
+function shimmerList(n){return Array.from({length:n}).map(()=>`<div class="flex gap-3 mb-3"><div class="shimmer w-8 h-8 rounded-lg shrink-0"></div><div class="flex-1 space-y-2"><div class="shimmer h-3.5 w-3/4 rounded"></div><div class="shimmer h-2.5 w-1/2 rounded"></div></div></div>`).join('');}
+function shimmerCards(n){return Array.from({length:n}).map(()=>`<div class="bg-white rounded-2xl p-4 border border-gray-100 space-y-3"><div class="shimmer h-8 w-8 rounded-xl"></div><div class="shimmer h-4 w-4/5 rounded"></div><div class="shimmer h-3 w-2/3 rounded"></div><div class="shimmer h-8 w-full rounded-lg mt-2"></div></div>`).join('');}
+function shimmerPosts(n){return Array.from({length:n}).map(()=>`<div class="post-card p-4 space-y-3"><div class="flex gap-3"><div class="shimmer w-10 h-10 rounded-full shrink-0"></div><div class="flex-1 space-y-2"><div class="shimmer h-3.5 w-48 rounded"></div><div class="shimmer h-2.5 w-24 rounded"></div></div></div><div class="shimmer h-4 w-3/4 rounded"></div><div class="shimmer h-3 w-full rounded"></div><div class="shimmer h-3 w-5/6 rounded"></div></div>`).join('');}
+</script>
+</body>
+</html>
