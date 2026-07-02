@@ -182,14 +182,35 @@ body{font-family:'Inter',sans-serif;background:#f3f4f6;}
             </form>
           </div>
 
-          <!-- ── REGISTER ── -->
+          <!-- ── REGISTER: Step 1 — Name & Email ── -->
           <div id="view-register" class="auth-view hidden">
             <button onclick="showView('view-emp-login')" class="flex items-center gap-1.5 text-sm text-gray-400 hover:text-maroon-700 mb-4 transition">← Back to Login</button>
             <h2 class="text-xl font-bold text-gray-800 mb-1">Create Account</h2>
-            <p class="text-sm text-gray-400 mb-5">Use your @rameshtrading.com.ph email</p>
-            <form onsubmit="doRegister(event)" class="space-y-3">
+            <p class="text-sm text-gray-400 mb-5">Use your @rameshtrading.com.ph email — we'll send a code to verify it.</p>
+            <form onsubmit="doSendRegOTP(event)" class="space-y-3">
               <input id="reg-name" type="text" placeholder="Full Name" class="auth-input" required maxlength="80"/>
               <input id="reg-email" type="email" placeholder="you@rameshtrading.com.ph" class="auth-input" required/>
+              <button type="submit" class="auth-btn" id="reg-send-otp-btn">Send OTP</button>
+            </form>
+          </div>
+
+          <!-- ── REGISTER: Step 2 — Verify OTP ── -->
+          <div id="view-register-otp" class="auth-view hidden">
+            <h2 class="text-xl font-bold text-gray-800 mb-1">Enter OTP</h2>
+            <p class="text-sm text-gray-400 mb-1">A 6-digit code was sent to:</p>
+            <p class="text-sm font-semibold text-maroon-700 mb-5" id="reg-otp-email-display">—</p>
+            <form onsubmit="doVerifyRegOTP(event)" class="space-y-4">
+              <input id="reg-otp-input" type="text" placeholder="6-digit OTP" class="auth-input text-center text-2xl font-bold tracking-widest" maxlength="6" required inputmode="numeric"/>
+              <button type="submit" class="auth-btn" id="reg-verify-otp-btn">Verify OTP</button>
+            </form>
+            <button onclick="doSendRegOTP(null,true)" class="w-full text-center text-sm text-gray-400 hover:text-maroon-700 mt-3 transition">Resend OTP</button>
+          </div>
+
+          <!-- ── REGISTER: Step 3 — Set Password ── -->
+          <div id="view-register-password" class="auth-view hidden">
+            <h2 class="text-xl font-bold text-gray-800 mb-1">Set Your Password</h2>
+            <p class="text-sm text-gray-400 mb-5">Email verified! Choose a password to finish creating your account.</p>
+            <form onsubmit="doCompleteRegistration(event)" class="space-y-3">
               <div class="relative">
                 <input id="reg-password" type="password" placeholder="Password (min 6 characters)" class="auth-input pr-10" required minlength="6"/>
                 <button type="button" onclick="togglePw('reg-password',this)" class="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600 text-sm">👁</button>
@@ -308,6 +329,10 @@ body{font-family:'Inter',sans-serif;background:#f3f4f6;}
         <div class="hidden sm:block text-xs text-gray-300" id="header-time"></div>
       </div>
     </header>
+    <div id="must-change-banner" class="hidden bg-amber-50 border-b border-amber-200 px-4 sm:px-7 py-2.5 flex items-center justify-between gap-3">
+      <span class="text-xs sm:text-sm font-semibold text-amber-800 flex items-center gap-2">⚠️ For your security, please change your temporary password.</span>
+      <button onclick="openProfilePanel();switchProfTab('password')" class="shrink-0 text-xs font-bold px-3 py-1.5 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition">Change Now</button>
+    </div>
     <div class="flex-1 p-3 sm:p-6" id="page-content"></div>
   </main>
 </div>
@@ -639,19 +664,56 @@ function doAdminLogin(e){
     }, err=>{setBtnLoading('admin-login-btn',false,'Sign In as Admin');toast(err.message,'error');});
 }
 
-// Register
-function doRegister(e){
+// Register — Step 1: send OTP to verify the email
+let _regFullName='';
+let _regEmail='';
+let _regOtp='';
+function doSendRegOTP(e, isResend=false){
+  if(e) e.preventDefault();
+  const name  = isResend ? _regFullName : document.getElementById('reg-name').value.trim();
+  const email = isResend ? _regEmail    : document.getElementById('reg-email').value.trim();
+  if(!name||!email){toast('Enter your name and email first.','error');return;}
+  _regFullName=name; _regEmail=email;
+  if(!isResend) setBtnLoading('reg-send-otp-btn',true);
+  api('sendRegistrationOTP', {fullName:name,email:email}, res=>{
+      if(!isResend) setBtnLoading('reg-send-otp-btn',false,'Send OTP');
+      if(res.success){
+        toast(res.message,'success');
+        document.getElementById('reg-otp-email-display').textContent=email;
+        showView('view-register-otp');
+      } else toast(res.message,'error');
+    }, err=>{if(!isResend)setBtnLoading('reg-send-otp-btn',false,'Send OTP');toast(err.message,'error');});
+}
+
+// Register — Step 2: verify OTP (client-side hop only; the real check
+// happens server-side at account creation, same pattern as Forgot Password)
+function doVerifyRegOTP(e){
   e.preventDefault();
-  const name=document.getElementById('reg-name').value.trim();
-  const email=document.getElementById('reg-email').value.trim();
+  const otp=document.getElementById('reg-otp-input').value.trim();
+  if(otp.length!==6){toast('Enter the 6-digit OTP.','error');return;}
+  setBtnLoading('reg-verify-otp-btn',true);
+  setBtnLoading('reg-verify-otp-btn',false,'Verify OTP');
+  _regOtp=otp;
+  showView('view-register-password');
+}
+
+// Register — Step 3: set password + create the account
+function doCompleteRegistration(e){
+  e.preventDefault();
   const pw=document.getElementById('reg-password').value;
   const confirm=document.getElementById('reg-confirm').value;
   if(pw!==confirm){toast('Passwords do not match.','error');return;}
   setBtnLoading('reg-btn',true);
-  api('registerUser', {payload:{email,fullName:name,password:pw}}, res=>{
+  api('verifyRegistrationOTPAndRegister', {email:_regEmail,otp:_regOtp,fullName:_regFullName,password:pw}, res=>{
       setBtnLoading('reg-btn',false,'Create Account');
-      if(res.success){toast(res.message,'success');showView('view-emp-login');switchAuthTab('emp');}
-      else toast(res.message,'error');
+      if(res.success){
+        toast(res.message,'success');
+        showView('view-emp-login');switchAuthTab('emp');
+        document.getElementById('reg-name').value='';document.getElementById('reg-email').value='';
+        document.getElementById('reg-password').value='';document.getElementById('reg-confirm').value='';
+        document.getElementById('reg-otp-input').value='';
+        _regFullName='';_regEmail='';_regOtp='';
+      } else toast(res.message,'error');
     }, err=>{setBtnLoading('reg-btn',false,'Create Account');toast(err.message,'error');});
 }
 
@@ -750,6 +812,15 @@ const POST_TYPES={
   Birthday:    {icon:'🎂',color:'#db2777',bg:'#fdf2f8',cls:'post-type-birthday', label:'Birthday / HR'},
 };
 
+// Shows/hides the "please change your temporary password" bar based on
+// APP.user.mustChangePassword — set on batch-imported accounts, cleared
+// automatically the moment that employee successfully changes it.
+function updateMustChangeBanner(){
+  const el=document.getElementById('must-change-banner');
+  if(!el) return;
+  el.classList.toggle('hidden', !(APP.user && APP.user.mustChangePassword));
+}
+
 function renderApp(){
   const u=APP.user;
   const initials=(u.fullName||'').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)||'?';
@@ -761,6 +832,7 @@ function renderApp(){
   const badge=document.getElementById('sidebar-role-badge');
   badge.textContent=u.superAdmin?'Super Admin':u.role;
   badge.className='mt-2 inline-block text-xs font-bold px-2.5 py-0.5 rounded-full '+(u.role==='Admin'?'bg-white text-maroon-700':'bg-white/15 text-white');
+  updateMustChangeBanner();
 
   const isAdmin=u.role==='Admin';
   const navLinks=isAdmin
@@ -891,7 +963,11 @@ function doChangePassword(){
   btn.disabled=true;btn.textContent='Updating…';
   api(APP.user.role==='Admin'?'changeAdminPassword':'changePassword', {email:APP.user.email,oldPassword:cur,newPassword:np}, res=>{
       btn.disabled=false;btn.textContent='🔐 Update Password';
-      if(res.success){toast(res.message,'success');document.getElementById('cur-pw').value='';document.getElementById('new-pw-prof').value='';document.getElementById('conf-pw-prof').value='';}
+      if(res.success){
+        toast(res.message,'success');
+        document.getElementById('cur-pw').value='';document.getElementById('new-pw-prof').value='';document.getElementById('conf-pw-prof').value='';
+        if(APP.user.mustChangePassword){ APP.user.mustChangePassword=false; updateMustChangeBanner(); }
+      }
       else toast(res.message,'error');
     }, err=>{btn.disabled=false;btn.textContent='🔐 Update Password';toast(err.message,'error');});
 }
