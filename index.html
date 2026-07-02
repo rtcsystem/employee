@@ -759,7 +759,7 @@ function renderApp(){
   document.getElementById('sidebar-name').textContent=u.fullName||u.email;
   document.getElementById('sidebar-pos').textContent=u.position||u.department||'—';
   const badge=document.getElementById('sidebar-role-badge');
-  badge.textContent=u.role;
+  badge.textContent=u.superAdmin?'Super Admin':u.role;
   badge.className='mt-2 inline-block text-xs font-bold px-2.5 py-0.5 rounded-full '+(u.role==='Admin'?'bg-white text-maroon-700':'bg-white/15 text-white');
 
   const isAdmin=u.role==='Admin';
@@ -1705,7 +1705,7 @@ function renderUsers(){
         <thead><tr class="text-xs text-gray-400 uppercase tracking-wide border-b">
           <th class="pb-2 pr-4 text-left">User</th><th class="pb-2 pr-4 text-left">Email</th>
           <th class="pb-2 pr-4 text-left">Position</th>
-          <th class="pb-2 pr-4 text-left">Role</th><th class="pb-2 text-right">Change Role</th></tr></thead>
+          <th class="pb-2 pr-4 text-left">Role</th><th class="pb-2 text-right">Actions</th></tr></thead>
         <tbody>${users.map(u=>`<tr class="border-b border-gray-50 hover:bg-maroon-50/30">
           <td class="py-2.5 pr-4">
             <div class="flex items-center gap-2">
@@ -1717,12 +1717,15 @@ function renderUsers(){
           </td>
           <td class="py-2.5 pr-4 text-xs text-gray-500">${esc(u.email)}</td>
           <td class="py-2.5 pr-4 text-xs text-gray-500">${esc(u.position||u.department||'—')}</td>
-          <td class="py-2.5 pr-4"><span class="text-xs font-bold px-2 py-0.5 rounded-full ${u.role==='Admin'?'bg-maroon-700 text-white':'bg-gray-200 text-gray-600'}">${esc(u.role)}</span></td>
+          <td class="py-2.5 pr-4"><span class="text-xs font-bold px-2 py-0.5 rounded-full ${u.superAdmin?'bg-amber-500 text-white':(u.role==='Admin'?'bg-maroon-700 text-white':'bg-gray-200 text-gray-600')}">${u.superAdmin?'Super Admin':esc(u.role)}</span></td>
           <td class="py-2.5 text-right">
-            ${u.email!==APP.user.email?`<select onchange="doUpdateRole('${esc(u.email)}',this.value)" class="text-xs px-2 py-1.5 border border-gray-200 rounded-lg bg-white text-gray-600 focus:outline-none">
-              <option value="Employee" ${u.role==='Employee'?'selected':''}>Employee</option>
-              <option value="Admin" ${u.role==='Admin'?'selected':''}>Admin</option>
-            </select>`:'<span class="text-xs text-gray-300 italic">You</span>'}
+            ${u.email===APP.user.email?'<span class="text-xs text-gray-300 italic">You</span>':(APP.user.superAdmin?`<div class="flex items-center justify-end gap-2">
+              <select onchange="doUpdateRole('${esc(u.email)}',this.value)" class="text-xs px-2 py-1.5 border border-gray-200 rounded-lg bg-white text-gray-600 focus:outline-none">
+                <option value="Employee" ${u.role==='Employee'?'selected':''}>Employee</option>
+                <option value="Admin" ${u.role==='Admin'?'selected':''}>Admin</option>
+              </select>
+              <button onclick="doDeleteUser('${esc(u.email)}')" title="Delete user" class="text-xs px-2 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50">🗑</button>
+            </div>`:'<span class="text-xs text-gray-300">—</span>')}
           </td>
         </tr>`).join('')}</tbody></table></div>`;
     }, err=>{setLoading(false);toast(err.message,'error');});
@@ -1737,6 +1740,16 @@ function doUpdateRole(email,role){
       }
       if(res.success) renderUsers();
     }, err=>{setLoading(false);toast(err.message,'error');});
+}
+function doDeleteUser(email){
+  showConfirm('Delete <b>'+esc(email)+'</b>? This permanently removes their account — they will no longer be able to log in.', function(){
+    setLoading(true);
+    api('deleteUser', {targetEmail:email,adminEmail:APP.user.email}, res=>{
+        setLoading(false);
+        toast(res.message,res.success?'success':'error');
+        if(res.success) renderUsers();
+      }, err=>{setLoading(false);toast(err.message,'error');});
+  }, 'Delete');
 }
 
 
