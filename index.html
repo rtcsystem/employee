@@ -435,7 +435,7 @@ body{font-family:'Inter',sans-serif;background:#f3f4f6;}
     </details>
     <details class="faq-item border border-gray-200 rounded-xl p-3.5 open:bg-gray-50">
       <summary class="text-sm font-semibold text-gray-700 cursor-pointer">Still need help?</summary>
-      <p class="text-xs text-gray-500 mt-2 leading-relaxed">Contact your system administrator or IT support for further assistance.</p>
+      <p class="text-xs text-gray-500 mt-2 leading-relaxed">Contact your system administrator or Isaac / Joymee / Ma'am Ana.</p>
     </details>
   </div>
 </div>
@@ -453,6 +453,29 @@ const APP = { user:null, folders:[], files:[], posts:[] };
 const BOOKING_SYSTEM_URL = 'https://rtcsystem.github.io/book/';
 let _forgotEmail = '';
 let _currentAuthTab = 'emp';
+
+// ── API ───────────────────────────────────────────────────────
+// This Employee Portal exec URL — must match whatever is currently
+// deployed (Deploy → Manage Deployments). If you redeploy as a
+// "New Deployment" (not "New Version"), this URL changes and needs
+// updating here too, or every api() call below will fail.
+const EMPLOYEE_PORTAL_API_URL = 'https://script.google.com/macros/s/AKfycbzYywqIGLWOey7hJVlwk_5XARSb9mNaUKScok7glpza7i2O78CnmT7JtKcCT-zbAuZ8/exec';
+
+function api(action, params, onSuccess, onError) {
+  const body = Object.assign({ action: action }, params || {});
+  fetch(EMPLOYEE_PORTAL_API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(body)
+  })
+    .then(function(r){ return r.json(); })
+    .then(function(data){ if(onSuccess) onSuccess(data); })
+    .catch(function(err){
+      if(onError) onError(err);
+      else toast('Network error: '+err.message,'error');
+      console.error('[Portal API]', action, err);
+    });
+}
 
 // ── Helpers ─────────────────────────────────────────────────
 function toast(msg, type='info', dur=4500){
@@ -542,8 +565,7 @@ function showUserProfile(email) {
   document.body.appendChild(overlay);
   overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
 
-  google.script.run
-    .withSuccessHandler(function(res){
+  api('getUserProfile', {email:email}, function(res){
       var inner = document.getElementById('upc-inner');
       if(!inner) return;
       var closeBtn = '<button onclick="document.getElementById(\'user-profile-overlay\').remove()" style="position:absolute;top:12px;right:14px;font-size:16px;background:none;border:none;cursor:pointer;color:#9ca3af;">✕</button>';
@@ -562,12 +584,10 @@ function showUserProfile(email) {
         + (res.position ? '<p style="font-size:12px;color:#6b7280;margin:0 0 2px;">' + esc(res.position) + '</p>' : '')
         + (res.department ? '<p style="font-size:12px;color:#9ca3af;margin:0 0 10px;">' + esc(res.department) + '</p>' : '<div style="margin-bottom:10px;"></div>')
         + '<a href="mailto:'+esc(res.email)+'" style="font-size:12px;color:#7b0019;font-weight:600;text-decoration:none;">' + esc(res.email) + '</a>';
-    })
-    .withFailureHandler(function(err){
+    }, function(err){
       var inner = document.getElementById('upc-inner');
       if(inner) inner.innerHTML = '<p style="color:#ef4444;font-size:13px;">'+esc(err.message)+'</p>';
-    })
-    .getUserProfile(email);
+    });
 }
 
 
@@ -599,14 +619,11 @@ function doEmpLogin(e){
   const email=document.getElementById('emp-email').value.trim();
   const pw=document.getElementById('emp-password').value;
   setBtnLoading('emp-login-btn',true);
-  google.script.run
-    .withSuccessHandler(res=>{
+  api('loginUser', {email:email,password:pw}, res=>{
       setBtnLoading('emp-login-btn',false,'Sign In');
       if(res.success){ onLoginSuccess(res.user); }
       else toast(res.message,'error');
-    })
-    .withFailureHandler(err=>{setBtnLoading('emp-login-btn',false,'Sign In');toast(err.message,'error');})
-    .loginUser(email,pw);
+    }, err=>{setBtnLoading('emp-login-btn',false,'Sign In');toast(err.message,'error');});
 }
 
 // Admin Login
@@ -615,14 +632,11 @@ function doAdminLogin(e){
   const email=document.getElementById('admin-email').value.trim();
   const pw=document.getElementById('admin-password').value;
   setBtnLoading('admin-login-btn',true);
-  google.script.run
-    .withSuccessHandler(res=>{
+  api('adminLogin', {email:email,password:pw}, res=>{
       setBtnLoading('admin-login-btn',false,'Sign In as Admin');
       if(res.success){ onLoginSuccess(res.user); }
       else toast(res.message,'error');
-    })
-    .withFailureHandler(err=>{setBtnLoading('admin-login-btn',false,'Sign In as Admin');toast(err.message,'error');})
-    .adminLogin(email,pw);
+    }, err=>{setBtnLoading('admin-login-btn',false,'Sign In as Admin');toast(err.message,'error');});
 }
 
 // Register
@@ -634,14 +648,11 @@ function doRegister(e){
   const confirm=document.getElementById('reg-confirm').value;
   if(pw!==confirm){toast('Passwords do not match.','error');return;}
   setBtnLoading('reg-btn',true);
-  google.script.run
-    .withSuccessHandler(res=>{
+  api('registerUser', {payload:{email,fullName:name,password:pw}}, res=>{
       setBtnLoading('reg-btn',false,'Create Account');
       if(res.success){toast(res.message,'success');showView('view-emp-login');switchAuthTab('emp');}
       else toast(res.message,'error');
-    })
-    .withFailureHandler(err=>{setBtnLoading('reg-btn',false,'Create Account');toast(err.message,'error');})
-    .registerUser({email,fullName:name,password:pw});
+    }, err=>{setBtnLoading('reg-btn',false,'Create Account');toast(err.message,'error');});
 }
 
 // Forgot PW — Step 1: send OTP
@@ -651,17 +662,14 @@ function doSendOTP(e, isResend=false){
   if(!email){toast('Enter your email first.','error');return;}
   _forgotEmail=email;
   if(!isResend) setBtnLoading('send-otp-btn',true);
-  google.script.run
-    .withSuccessHandler(res=>{
+  api('sendForgotPasswordOTP', {email:email}, res=>{
       if(!isResend) setBtnLoading('send-otp-btn',false,'Send OTP');
       if(res.success){
         toast(res.message,'success');
         document.getElementById('otp-email-display').textContent=email;
         showView('view-forgot-2');
       } else toast(res.message,'error');
-    })
-    .withFailureHandler(err=>{if(!isResend)setBtnLoading('send-otp-btn',false,'Send OTP');toast(err.message,'error');})
-    .sendForgotPasswordOTP(email);
+    }, err=>{if(!isResend)setBtnLoading('send-otp-btn',false,'Send OTP');toast(err.message,'error');});
 }
 
 // Forgot PW — Step 2: verify OTP
@@ -683,14 +691,11 @@ function doResetPassword(e){
   const confirm=document.getElementById('new-pw-confirm').value;
   if(pw!==confirm){toast('Passwords do not match.','error');return;}
   setBtnLoading('reset-pw-btn',true);
-  google.script.run
-    .withSuccessHandler(res=>{
+  api('verifyOTPAndResetPassword', {email:_forgotEmail,otp:_forgotOtp,newPassword:pw}, res=>{
       setBtnLoading('reset-pw-btn',false,'Reset Password');
       if(res.success){toast(res.message,'success');switchAuthTab(_currentAuthTab);}
       else toast(res.message,'error');
-    })
-    .withFailureHandler(err=>{setBtnLoading('reset-pw-btn',false,'Reset Password');toast(err.message,'error');})
-    .verifyOTPAndResetPassword(_forgotEmail,_forgotOtp,pw);
+    }, err=>{setBtnLoading('reset-pw-btn',false,'Reset Password');toast(err.message,'error');});
 }
 let _forgotOtp='';
 
@@ -710,8 +715,7 @@ function openBookingSystem(){
   const original=link?link.innerHTML:'';
   if(link) link.innerHTML='<span>⏳</span><span>Opening…</span>';
 
-  google.script.run
-    .withSuccessHandler(res=>{
+  api('generateBookingSSOToken', {email:APP.user.email}, res=>{
       if(link) link.innerHTML=original;
       if(!res || !res.success){
         toast((res&&res.message)||'Could not open Booking System.','error');
@@ -719,12 +723,10 @@ function openBookingSystem(){
       }
       const url=BOOKING_SYSTEM_URL+'?ssoToken='+encodeURIComponent(res.token);
       window.open(url,'_blank','noopener');
-    })
-    .withFailureHandler(err=>{
+    }, err=>{
       if(link) link.innerHTML=original;
       toast('Could not open Booking System: '+err.message,'error');
-    })
-    .generateBookingSSOToken(APP.user.email);
+    });
 }
 
 // ── Logout ───────────────────────────────────────────────────
@@ -865,8 +867,7 @@ function doSaveProfile(){
     ? { email:u.email, displayName:data.fullName, position:data.position }
     : data;
 
-  google.script.run
-    .withSuccessHandler(res=>{
+  api(fn, {payload:payload}, res=>{
       btn.disabled=false; btn.textContent='💾 Save Changes';
       if(res.success){
         toast(res.message,'success');
@@ -878,9 +879,7 @@ function doSaveProfile(){
         document.getElementById('sidebar-name').textContent=APP.user.fullName;
         document.getElementById('sidebar-pos').textContent=APP.user.position||APP.user.department||'—';
       } else toast(res.message,'error');
-    })
-    .withFailureHandler(err=>{btn.disabled=false;btn.textContent='💾 Save Changes';toast(err.message,'error');})
-    [fn](payload);
+    }, err=>{btn.disabled=false;btn.textContent='💾 Save Changes';toast(err.message,'error');});
 }
 
 function doChangePassword(){
@@ -890,14 +889,11 @@ function doChangePassword(){
   if(np!==conf){toast('Passwords do not match.','error');return;}
   const btn=document.getElementById('change-pw-btn');
   btn.disabled=true;btn.textContent='Updating…';
-  google.script.run
-    .withSuccessHandler(res=>{
+  api(APP.user.role==='Admin'?'changeAdminPassword':'changePassword', {email:APP.user.email,oldPassword:cur,newPassword:np}, res=>{
       btn.disabled=false;btn.textContent='🔐 Update Password';
       if(res.success){toast(res.message,'success');document.getElementById('cur-pw').value='';document.getElementById('new-pw-prof').value='';document.getElementById('conf-pw-prof').value='';}
       else toast(res.message,'error');
-    })
-    .withFailureHandler(err=>{btn.disabled=false;btn.textContent='🔐 Update Password';toast(err.message,'error');})
-    [APP.user.role==='Admin'?'changeAdminPassword':'changePassword'](APP.user.email,cur,np);
+    }, err=>{btn.disabled=false;btn.textContent='🔐 Update Password';toast(err.message,'error');});
 }
 
 // Avatar upload with client-side 128×128 resize
@@ -917,8 +913,7 @@ function handleAvatarUpload(input){
       const sx=(img.width-size)/2,sy=(img.height-size)/2;
       ctx.drawImage(img,sx,sy,size,size,0,0,128,128);
       const base64=canvas.toDataURL('image/jpeg',0.85).split(',')[1];
-      google.script.run
-        .withSuccessHandler(res=>{
+      api('updateAvatar', {email:APP.user.email,role:APP.user.role,base64:base64}, res=>{
           document.getElementById('avatar-uploading').classList.add('hidden');
           if(res.success){
             APP.user.avatar=res.avatar;
@@ -929,9 +924,7 @@ function handleAvatarUpload(input){
             const sa=document.getElementById('sidebar-avatar');
             sa.innerHTML=`<img src="data:image/jpeg;base64,${b64}" class="w-full h-full object-cover"/>`;
           } else toast(res.message,'error');
-        })
-        .withFailureHandler(err=>{document.getElementById('avatar-uploading').classList.add('hidden');toast(err.message,'error');})
-        .updateAvatar(APP.user.email,APP.user.role,base64);
+        }, err=>{document.getElementById('avatar-uploading').classList.add('hidden');toast(err.message,'error');});
     };
     img.src=e.target.result;
   };
@@ -1017,27 +1010,21 @@ function doCreatePost(e){
   const btn=document.getElementById('post-submit-btn');
   btn.disabled=true;btn.innerHTML='<div class="spinner" style="width:16px;height:16px;border-width:2px;border-top-color:#fff;border-color:rgba(255,255,255,.3)"></div><span>Publishing…</span>';
   setLoading(true);
-  google.script.run
-    .withSuccessHandler(res=>{
-      setLoading(false);btn.disabled=false;btn.innerHTML='<span>🚀</span><span>Publish</span>';
-      if(res.success){toast(res.message,'success');clearCompose();loadFeed();}
-      else toast(res.message,'error');
-    })
-    .withFailureHandler(err=>{setLoading(false);btn.disabled=false;btn.innerHTML='<span>🚀</span><span>Publish</span>';toast(err.message,'error');})
-    .createPost({type,title,content:finalContent,authorEmail:APP.user.email,authorName:APP.user.fullName,
+  api('createPost', {payload:{type,title,content:finalContent,authorEmail:APP.user.email,authorName:APP.user.fullName,
       eventDate:document.getElementById('event-date')?.value||'',
       eventLoc:document.getElementById('event-loc')?.value||'',
       attachLink:document.getElementById('attach-link')?.value||'',
       attachName:document.getElementById('attach-link')?.value?'Attachment':'',
-      isPinned:document.getElementById('post-pin')?.checked||false});
+      isPinned:document.getElementById('post-pin')?.checked||false}}, res=>{
+      setLoading(false);btn.disabled=false;btn.innerHTML='<span>🚀</span><span>Publish</span>';
+      if(res.success){toast(res.message,'success');clearCompose();loadFeed();}
+      else toast(res.message,'error');
+    }, err=>{setLoading(false);btn.disabled=false;btn.innerHTML='<span>🚀</span><span>Publish</span>';toast(err.message,'error');});
 }
 
 function loadFeed(){
   setLoading(true);
-  google.script.run
-    .withSuccessHandler(posts=>{setLoading(false);APP.posts=posts;renderPostCards(posts);})
-    .withFailureHandler(err=>{setLoading(false);toast('Feed error: '+err.message,'error');})
-    .getPosts(50,APP.user.email);
+  api('getPosts', {limit:50,userEmail:APP.user.email}, posts=>{setLoading(false);APP.posts=posts;renderPostCards(posts);}, err=>{setLoading(false);toast('Feed error: '+err.message,'error');});
 }
 
 function renderPostCards(posts){
@@ -1131,10 +1118,7 @@ function doToggleLike(postId,btn){
   const cur=parseInt(countEl.textContent)||0;
   if(wasLiked){btn.classList.remove('liked','text-maroon-700');btn.classList.add('text-gray-400');btn.querySelector('svg').setAttribute('fill','none');btn.querySelector('svg').setAttribute('stroke','currentColor');countEl.textContent=Math.max(0,cur-1);}
   else{btn.classList.add('liked','text-maroon-700');btn.classList.remove('text-gray-400');btn.querySelector('svg').setAttribute('fill','#7b0019');btn.querySelector('svg').setAttribute('stroke','#7b0019');countEl.textContent=cur+1;}
-  google.script.run
-    .withSuccessHandler(res=>{if(res.success)countEl.textContent=res.likeCount;})
-    .withFailureHandler(()=>toast('Could not update like.','error'))
-    .toggleLike(postId,APP.user.email);
+  api('toggleLike', {postId:postId,email:APP.user.email}, res=>{if(res.success)countEl.textContent=res.likeCount;}, ()=>toast('Could not update like.','error'));
 }
 
 function toggleComments(postId){
@@ -1143,10 +1127,7 @@ function toggleComments(postId){
   s.classList.add('open');loadComments(postId);
 }
 function loadComments(postId){
-  google.script.run
-    .withSuccessHandler(c=>renderComments(postId,c))
-    .withFailureHandler(()=>{const el=document.getElementById('comments-list-'+postId);if(el)el.innerHTML='<p class="text-xs text-red-400 text-center">Failed to load.</p>';})
-    .getComments(postId);
+  api('getComments', {postId:postId}, c=>renderComments(postId,c), ()=>{const el=document.getElementById('comments-list-'+postId);if(el)el.innerHTML='<p class="text-xs text-red-400 text-center">Failed to load.</p>';});
 }
 function renderComments(postId,comments){
   const el=document.getElementById('comments-list-'+postId);
@@ -1203,43 +1184,28 @@ function doAddReply(postId,parentCommentId){
   const text=(input?.value||'').trim();
   if(!text)return;
   input.value='';input.disabled=true;
-  google.script.run
-    .withSuccessHandler(res=>{input.disabled=false;if(res.success){document.getElementById('reply-box-'+parentCommentId)?.classList.add('hidden');loadComments(postId);}else{toast(res.message,'error');input.value=text;}})
-    .withFailureHandler(err=>{input.disabled=false;toast(err.message,'error');input.value=text;})
-    .addComment(postId,APP.user.email,APP.user.fullName,text,parentCommentId);
+  api('addComment', {postId:postId,authorEmail:APP.user.email,authorName:APP.user.fullName,text:text,parentCommentId:parentCommentId}, res=>{input.disabled=false;if(res.success){document.getElementById('reply-box-'+parentCommentId)?.classList.add('hidden');loadComments(postId);}else{toast(res.message,'error');input.value=text;}}, err=>{input.disabled=false;toast(err.message,'error');input.value=text;});
 }
 function doAddComment(postId){
   const input=document.getElementById('comment-input-'+postId);
   const text=(input?.value||'').trim();
   if(!text)return;
   input.value='';input.disabled=true;
-  google.script.run
-    .withSuccessHandler(res=>{input.disabled=false;if(res.success)loadComments(postId);else{toast(res.message,'error');input.value=text;}})
-    .withFailureHandler(err=>{input.disabled=false;toast(err.message,'error');input.value=text;})
-    .addComment(postId,APP.user.email,APP.user.fullName,text,'');
+  api('addComment', {postId:postId,authorEmail:APP.user.email,authorName:APP.user.fullName,text:text,parentCommentId:''}, res=>{input.disabled=false;if(res.success)loadComments(postId);else{toast(res.message,'error');input.value=text;}}, err=>{input.disabled=false;toast(err.message,'error');input.value=text;});
 }
 function doDeleteComment(commentId,postId){
   showConfirm('Delete this comment?', function(){
-    google.script.run
-      .withSuccessHandler(res=>{if(res.success)loadComments(postId);else toast(res.message,'error');})
-      .withFailureHandler(err=>toast(err.message,'error'))
-      .deleteComment(commentId,APP.user.email);
+    api('deleteComment', {commentId:commentId,adminEmail:APP.user.email}, res=>{if(res.success)loadComments(postId);else toast(res.message,'error');}, err=>toast(err.message,'error'));
   });
 }
 function doTogglePin(postId,newState){
   setLoading(true);
-  google.script.run
-    .withSuccessHandler(res=>{setLoading(false);if(res.success){toast(newState?'Post pinned.':'Post unpinned.','success');loadFeed();}else toast(res.message,'error');})
-    .withFailureHandler(err=>{setLoading(false);toast(err.message,'error');})
-    .togglePin(postId,newState,APP.user.email);
+  api('togglePin', {postId:postId,newPinState:newState,adminEmail:APP.user.email}, res=>{setLoading(false);if(res.success){toast(newState?'Post pinned.':'Post unpinned.','success');loadFeed();}else toast(res.message,'error');}, err=>{setLoading(false);toast(err.message,'error');});
 }
 function doDeletePost(postId){
   showConfirm('Delete this post and all its comments?', function(){
     setLoading(true);
-    google.script.run
-      .withSuccessHandler(res=>{setLoading(false);toast(res.message,res.success?'success':'error');if(res.success)document.getElementById('post-'+postId)?.remove();})
-      .withFailureHandler(err=>{setLoading(false);toast(err.message,'error');})
-      .deletePost(postId,APP.user.email);
+    api('deletePost', {postId:postId,adminEmail:APP.user.email}, res=>{setLoading(false);toast(res.message,res.success?'success':'error');if(res.success)document.getElementById('post-'+postId)?.remove();}, err=>{setLoading(false);toast(err.message,'error');});
   });
 }
 
@@ -1249,8 +1215,7 @@ function doDeletePost(postId){
 // ════════════════════════════════════════════════════════════
 function renderDashboard(){
   setLoading(true);
-  google.script.run
-    .withSuccessHandler(s=>{
+  api('getStats', {}, s=>{
       setLoading(false);
       document.getElementById('page-content').innerHTML=`
         <div class="fade-in space-y-5">
@@ -1274,9 +1239,7 @@ function renderDashboard(){
             </div>
           </div>
         </div>`;
-    })
-    .withFailureHandler(err=>{setLoading(false);toast(err.message,'error');})
-    .getStats();
+    }, err=>{setLoading(false);toast(err.message,'error');});
 }
 
 
@@ -1305,8 +1268,7 @@ function renderFolders(){
   loadFoldersList();
 }
 function loadFoldersList(){
-  google.script.run
-    .withSuccessHandler(folders=>{
+  api('getFolders', {}, folders=>{
       APP.folders=folders;
       const el=document.getElementById('folders-list');if(!el)return;
       const isAdmin=APP.user.role==='Admin';
@@ -1329,27 +1291,19 @@ function loadFoldersList(){
         +'<th class="pb-2 pr-4 text-left">Name</th><th class="pb-2 pr-4 text-left">Created By</th><th class="pb-2 pr-4 text-left">Date</th>'
         +(isAdmin?'<th class="pb-2 text-right">Actions</th>':'')
         +'</tr></thead><tbody>'+rows+'</tbody></table></div>';
-    })
-    .withFailureHandler(err=>toast(err.message,'error'))
-    .getFolders();
+    }, err=>toast(err.message,'error'));
 }
 function doCreateFolder(){
   const input=document.getElementById('folder-name-input');const name=input.value.trim();
   if(!name){toast('Enter a folder name.','error');return;}
   const btn=document.getElementById('create-folder-btn');btn.disabled=true;btn.textContent='Creating…';setLoading(true);
-  google.script.run
-    .withSuccessHandler(res=>{setLoading(false);btn.disabled=false;btn.textContent='+ Create';if(res.success){toast(res.message,'success');input.value='';loadFoldersList();}else toast(res.message,'error');})
-    .withFailureHandler(err=>{setLoading(false);btn.disabled=false;btn.textContent='+ Create';toast(err.message,'error');})
-    .createFolder(name,APP.user.email);
+  api('createFolder', {folderName:name,createdBy:APP.user.email}, res=>{setLoading(false);btn.disabled=false;btn.textContent='+ Create';if(res.success){toast(res.message,'success');input.value='';loadFoldersList();}else toast(res.message,'error');}, err=>{setLoading(false);btn.disabled=false;btn.textContent='+ Create';toast(err.message,'error');});
 }
 
 function doDeleteFolder(folderId,folderName){
   showConfirm('Delete folder "<b>'+esc(folderName)+'</b>" and all its files?', function(){
     setLoading(true);
-    google.script.run
-      .withSuccessHandler(res=>{setLoading(false);toast(res.message,res.success?'success':'error');if(res.success)loadFoldersList();})
-      .withFailureHandler(err=>{setLoading(false);toast(err.message,'error');})
-      .deleteFolder(folderId,APP.user.email);
+    api('deleteFolder', {folderId:folderId,adminEmail:APP.user.email}, res=>{setLoading(false);toast(res.message,res.success?'success':'error');if(res.success)loadFoldersList();}, err=>{setLoading(false);toast(err.message,'error');});
   });
 }
 function openFolderUpload(folderId,folderName){
@@ -1374,8 +1328,7 @@ function openFolderContents(folderId,folderName){
       </div>
     </div>`;
   setLoading(true);
-  google.script.run
-    .withSuccessHandler(function(files){
+  api('getFiles', {folderId:folderId}, function(files){
       setLoading(false);
       const el=document.getElementById('folder-contents');if(!el)return;
       if(!files.length){el.innerHTML='<p class="text-sm text-gray-400 text-center py-8">No files in this folder yet.</p>';return;}
@@ -1399,9 +1352,7 @@ function openFolderContents(folderId,folderName){
         +'<th class="pb-2 pr-4 text-left">Date</th>'
         +'<th class="pb-2 text-right">Actions</th>'
         +'</tr></thead><tbody>'+rows+'</tbody></table></div>';
-    })
-    .withFailureHandler(function(err){setLoading(false);toast(err.message,'error');})
-    .getFiles(folderId);
+    }, function(err){setLoading(false);toast(err.message,'error');});
 }
 
 
@@ -1451,8 +1402,7 @@ function renderUpload(){
         </div>
       </div>
     </div>`;
-  google.script.run
-    .withSuccessHandler(folders=>{
+  api('getFolders', {}, folders=>{
       APP.folders=folders;
       const sel=document.getElementById('upload-folder-select');if(!sel)return;
       sel.innerHTML=!folders.length?'<option value="">No folders yet.</option>':
@@ -1463,9 +1413,7 @@ function renderUpload(){
           if(sel.options[i].value===pre.id){sel.selectedIndex=i;break;}
         }
       }
-    })
-    .withFailureHandler(err=>toast(err.message,'error'))
-    .getFolders();
+    }, err=>toast(err.message,'error'));
 }
 
 function handleDrop(e){
@@ -1581,8 +1529,14 @@ function doUploadAllFiles(){
     const reader=new FileReader();
     reader.onload=function(e){
       const base64=e.target.result.split(',')[1];
-      google.script.run
-        .withSuccessHandler(function(res){
+      api('uploadFile', {payload:{
+          name       : file.name,
+          mimeType   : file.type||'application/octet-stream',
+          base64     : base64,
+          folderId   : folderId,
+          folderName : folderName,
+          uploadedBy : APP.user.email
+        }}, function(res){
           current++;
           if(res && res.success){
             done++;
@@ -1594,22 +1548,13 @@ function doUploadAllFiles(){
             toast('Failed: '+msg,'error');
           }
           uploadNext();
-        })
-        .withFailureHandler(function(err){
+        }, function(err){
           current++;
           failed++;
           const msg=(err&&err.message)||err||'Unknown error';
           if(statusEl) statusEl.innerHTML=`<span class="text-red-500" title="${esc(msg)}">❌ Error</span>`;
           toast('Upload error: '+msg,'error');
           uploadNext();
-        })
-        .uploadFile({
-          name       : file.name,
-          mimeType   : file.type||'application/octet-stream',
-          base64     : base64,
-          folderId   : folderId,
-          folderName : folderName,
-          uploadedBy : APP.user.email
         });
     };
     reader.onerror=function(){
@@ -1650,15 +1595,12 @@ function renderDocuments(){
       <div id="docs-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">${shimmerCards(8)}</div>
     </div>`;
   setLoading(true);
-  google.script.run
-    .withSuccessHandler(files=>{
+  api('getFiles', {}, files=>{
       setLoading(false);APP.files=files;
       const ff=document.getElementById('folder-filter');
       if(ff){const flds=[...new Map(files.map(f=>[f.folderId,f])).values()];ff.innerHTML='<option value="">All Folders</option>'+flds.map(f=>`<option value="${esc(f.folderId)}">${esc(f.folderName)}</option>`).join('');}
       renderDocCards(files,isAdmin);
-    })
-    .withFailureHandler(err=>{setLoading(false);toast(err.message,'error');})
-    .getFiles();
+    }, err=>{setLoading(false);toast(err.message,'error');});
 }
 function setDocView(m){_docView=m;document.getElementById('view-grid').className='p-2 rounded-lg text-xs '+(m==='grid'?'bg-maroon-700 text-white':'bg-gray-100 text-gray-600');document.getElementById('view-list').className='p-2 rounded-lg text-xs '+(m==='list'?'bg-maroon-700 text-white':'bg-gray-100 text-gray-600');filterDocuments(document.getElementById('doc-search')?.value||'');}
 function filterDocuments(q){const fId=document.getElementById('folder-filter')?.value||'';const isAdmin=APP.user.role==='Admin';let files=APP.files;if(fId)files=files.filter(f=>f.folderId===fId);if(q.trim())files=files.filter(f=>f.fileName.toLowerCase().includes(q.toLowerCase())||f.folderName.toLowerCase().includes(q.toLowerCase()));renderDocCards(files,isAdmin);}
@@ -1699,8 +1641,7 @@ function renderDocCards(files,isAdmin){
 function doDeleteFile(fileId,fileName){
   showConfirm('Delete "<b>'+esc(fileName)+'</b>"?', function(){
     setLoading(true);
-    google.script.run
-      .withSuccessHandler(res=>{
+    api('deleteFile', {fileId:fileId,adminEmail:APP.user.email}, res=>{
         setLoading(false);toast(res.message,res.success?'success':'error');
         if(res.success){
           // Folder contents view: remove row directly
@@ -1710,9 +1651,7 @@ function doDeleteFile(fileId,fileName){
           APP.files=APP.files.filter(f=>f.fileId!==fileId);
           renderDocCards(APP.files,APP.user.role==='Admin');
         }
-      })
-      .withFailureHandler(err=>{setLoading(false);toast(err.message,'error');})
-      .deleteFile(fileId,APP.user.email);
+      }, err=>{setLoading(false);toast(err.message,'error');});
   });
 }
 
@@ -1730,8 +1669,7 @@ function renderLogs(){
       <div id="logs-wrap" class="p-4">${shimmerList(5)}</div>
     </div></div>`;
   setLoading(true);
-  google.script.run
-    .withSuccessHandler(logs=>{
+  api('getLogs', {limit:50}, logs=>{
       setLoading(false);const el=document.getElementById('logs-wrap');if(!el)return;
       if(!logs.length){el.innerHTML='<p class="text-sm text-gray-400 text-center py-8">No logs yet.</p>';return;}
       const clrs={'Folder Created':'bg-blue-50 text-blue-700','Folder Deleted':'bg-red-50 text-red-600','File Uploaded':'bg-green-50 text-green-700','File Deleted':'bg-red-50 text-red-600','User Registered':'bg-purple-50 text-purple-700','Role Updated':'bg-amber-50 text-amber-700','Post Created':'bg-pink-50 text-pink-700','Post Deleted':'bg-red-50 text-red-600','Admin Login':'bg-maroon-50 text-maroon-700','User Login':'bg-gray-100 text-gray-600'};
@@ -1743,9 +1681,7 @@ function renderLogs(){
           <td class="py-2 pr-4"><span class="px-2 py-0.5 rounded-full font-semibold ${clrs[l.action]||'bg-gray-100 text-gray-600'}">${esc(l.action)}</span></td>
           <td class="py-2 text-gray-500">${esc(l.details)}</td>
         </tr>`).join('')}</tbody></table></div>`;
-    })
-    .withFailureHandler(err=>{setLoading(false);toast(err.message,'error');})
-    .getLogs(50);
+    }, err=>{setLoading(false);toast(err.message,'error');});
 }
 
 
@@ -1762,8 +1698,7 @@ function renderUsers(){
       <div id="users-wrap" class="p-4">${shimmerList(4)}</div>
     </div></div>`;
   setLoading(true);
-  google.script.run
-    .withSuccessHandler(users=>{
+  api('getAllUsers', {}, users=>{
       setLoading(false);const el=document.getElementById('users-wrap');if(!el)return;
       if(!users.length){el.innerHTML='<p class="text-sm text-gray-400 text-center py-8">No users yet.</p>';return;}
       el.innerHTML=`<div class="overflow-x-auto"><table class="w-full text-sm">
@@ -1790,23 +1725,18 @@ function renderUsers(){
             </select>`:'<span class="text-xs text-gray-300 italic">You</span>'}
           </td>
         </tr>`).join('')}</tbody></table></div>`;
-    })
-    .withFailureHandler(err=>{setLoading(false);toast(err.message,'error');})
-    .getAllUsers();
+    }, err=>{setLoading(false);toast(err.message,'error');});
 }
 function doUpdateRole(email,role){
   setLoading(true);
-  google.script.run
-    .withSuccessHandler(res=>{
+  api('updateUserRole', {targetEmail:email,newRole:role,adminEmail:APP.user.email}, res=>{
       setLoading(false);
       toast(res.message,res.success?'success':'error');
       if(res.success && res.tempPassword){
         alert('Temporary password for '+email+': '+res.tempPassword+'\n\nShare this with them directly — they cannot use "Forgot Password" to set it themselves yet.');
       }
       if(res.success) renderUsers();
-    })
-    .withFailureHandler(err=>{setLoading(false);toast(err.message,'error');})
-    .updateUserRole(email,role,APP.user.email);
+    }, err=>{setLoading(false);toast(err.message,'error');});
 }
 
 
