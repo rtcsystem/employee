@@ -479,6 +479,36 @@ const BOOKING_SYSTEM_URL = 'https://rtcsystem.github.io/book/';
 let _forgotEmail = '';
 let _currentAuthTab = 'emp';
 
+// ── Session persistence (localStorage) ─────────────────────────
+// Lets a user navigate away (e.g. to the Booking System and back)
+// and return to this same tab without re-entering their password.
+// Trade-off: session is "remembered" in the browser for SESSION_TTL_MS,
+// same as any normal "stay logged in" web app — not a new risk beyond
+// what this app already does (no server-side session either way).
+const SESSION_STORAGE_KEY = 'rtcPortalSession';
+const SESSION_TTL_MS = 12 * 60 * 60 * 1000; // 12 hours
+
+function saveSession(user){
+  try {
+    localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({ user: user, savedAt: Date.now() }));
+  } catch(e) { /* localStorage unavailable (private mode, etc.) — fail silently, just no persistence */ }
+}
+
+function loadSession(){
+  try {
+    const raw = localStorage.getItem(SESSION_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || !parsed.user || !parsed.savedAt) { clearSession(); return null; }
+    if (Date.now() - parsed.savedAt > SESSION_TTL_MS) { clearSession(); return null; }
+    return parsed.user;
+  } catch(e) { clearSession(); return null; }
+}
+
+function clearSession(){
+  try { localStorage.removeItem(SESSION_STORAGE_KEY); } catch(e) {}
+}
+
 // ── API ───────────────────────────────────────────────────────
 // This Employee Portal exec URL — must match whatever is currently
 // deployed (Deploy → Manage Deployments). If you redeploy as a
@@ -622,7 +652,14 @@ function showUserProfile(email) {
 window.addEventListener('load',()=>{
   setTimeout(()=>{
     document.getElementById('global-loader').classList.add('hidden');
-    document.getElementById('auth-screen').classList.remove('hidden');
+    const cachedUser = loadSession();
+    if (cachedUser) {
+      // Valid session found (e.g. returning from the Booking System via
+      // "Back to Portal") — log straight back in, no password needed.
+      onLoginSuccess(cachedUser);
+    } else {
+      document.getElementById('auth-screen').classList.remove('hidden');
+    }
   },600);
 });
 
@@ -764,27 +801,31 @@ let _forgotOtp='';
 // ── After successful login ───────────────────────────────────
 function onLoginSuccess(user){
   APP.user=user;
+  saveSession(user);
   document.getElementById('auth-screen').classList.add('hidden');
   renderApp();
 }
 
 // ── SSO: Book a Room ────────────────────────────────────────
-// Requests a short-lived signed token from the server, then opens
-// the Booking System with it attached — the user lands there
-// already logged in, no password re-entry.
+// Requests a short-lived signed token from the server, then navigates
+// to the Booking System with it attached (same tab — no new tab) —
+// the user lands there already logged in, no password re-entry.
+// A "Back to Portal" button on the Booking System side brings them
+// back to this same tab; the loadSession() check below on page load
+// then logs them straight back in here too, no password re-entry either.
 function openBookingSystem(){
   const link=document.querySelector('[data-nav="book-room"]');
   const original=link?link.innerHTML:'';
   if(link) link.innerHTML='<span>⏳</span><span>Opening…</span>';
 
   api('generateBookingSSOToken', {email:APP.user.email}, res=>{
-      if(link) link.innerHTML=original;
       if(!res || !res.success){
+        if(link) link.innerHTML=original;
         toast((res&&res.message)||'Could not open Booking System.','error');
         return;
       }
       const url=BOOKING_SYSTEM_URL+'?ssoToken='+encodeURIComponent(res.token);
-      window.open(url,'_blank','noopener');
+      window.location.href=url;
     }, err=>{
       if(link) link.innerHTML=original;
       toast('Could not open Booking System: '+err.message,'error');
@@ -794,6 +835,7 @@ function openBookingSystem(){
 // ── Logout ───────────────────────────────────────────────────
 function doLogout(){
   APP.user=null;
+  clearSession();
   document.getElementById('app').classList.add('hidden');
   document.getElementById('auth-screen').classList.remove('hidden');
   switchAuthTab('emp');
