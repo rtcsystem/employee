@@ -1295,7 +1295,7 @@ function renderDashboard(){
       setLoading(false);
       document.getElementById('page-content').innerHTML=`
         <div class="fade-in space-y-5">
-          <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-4" id="dash-tiles">
             ${[{i:'📁',l:'Folders',v:s.totalFolders,c:'text-maroon-700'},{i:'📄',l:'Files',v:s.totalFiles,c:'text-blue-600'},
                {i:'📰',l:'Posts',v:s.totalPosts,c:'text-pink-600'},
                {i:'👥',l:'Users',v:s.totalUsers,c:'text-green-600'}].map(x=>`
@@ -1315,7 +1315,24 @@ function renderDashboard(){
             </div>
           </div>
         </div>`;
+      loadPendingApprovalsTile();
     }, err=>{setLoading(false);toast(err.message,'error');});
+}
+
+// Adds a "Pending Approvals" tile to the Dashboard when there's at least
+// one employee account awaiting approval — clicking it jumps to Users.
+function loadPendingApprovalsTile(){
+  api('getPendingUsers', {}, res=>{
+      const count=(res&&res.success)?res.users.length:0;
+      const grid=document.getElementById('dash-tiles');
+      if(!count||!grid) return;
+      grid.insertAdjacentHTML('beforeend', `
+        <div onclick="navigateTo('users')" class="bg-amber-50 rounded-2xl p-5 shadow-sm border border-amber-200 cursor-pointer hover:shadow-md transition">
+          <div class="text-2xl mb-1">⏳</div>
+          <div class="text-3xl font-black text-amber-600">${count}</div>
+          <div class="text-xs text-amber-700 font-semibold mt-0.5">Pending Approval${count!==1?'s':''}</div>
+        </div>`);
+    }, ()=>{});
 }
 
 
@@ -1793,17 +1810,29 @@ function renderUsers(){
           </td>
           <td class="py-2.5 pr-4 text-xs text-gray-500">${esc(u.email)}</td>
           <td class="py-2.5 pr-4 text-xs text-gray-500">${esc(u.position||u.department||'—')}</td>
-          <td class="py-2.5 pr-4"><span class="text-xs font-bold px-2 py-0.5 rounded-full ${u.superAdmin?'bg-amber-500 text-white':(u.role==='Admin'?'bg-maroon-700 text-white':'bg-gray-200 text-gray-600')}">${u.superAdmin?'Super Admin':esc(u.role)}</span></td>
+          <td class="py-2.5 pr-4">${u.status==='pending'
+            ?'<span class="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">⏳ Pending</span>'
+            :`<span class="text-xs font-bold px-2 py-0.5 rounded-full ${u.superAdmin?'bg-amber-500 text-white':(u.role==='Admin'?'bg-maroon-700 text-white':'bg-gray-200 text-gray-600')}">${u.superAdmin?'Super Admin':esc(u.role)}</span>`}</td>
           <td class="py-2.5 text-right">
-            ${u.email===APP.user.email?'<span class="text-xs text-gray-300 italic">You</span>':(APP.user.superAdmin?`<div class="flex items-center justify-end gap-2">
+            ${u.status==='pending'
+              ?`<button onclick="doApproveUser('${esc(u.email)}')" class="text-xs px-3 py-1.5 rounded-lg bg-green-600 text-white font-bold hover:bg-green-700 transition">✅ Approve</button>`
+              :(u.email===APP.user.email?'<span class="text-xs text-gray-300 italic">You</span>':(APP.user.superAdmin?`<div class="flex items-center justify-end gap-2">
               <select onchange="doUpdateRole('${esc(u.email)}',this.value)" class="text-xs px-2 py-1.5 border border-gray-200 rounded-lg bg-white text-gray-600 focus:outline-none">
                 <option value="Employee" ${u.role==='Employee'?'selected':''}>Employee</option>
                 <option value="Admin" ${u.role==='Admin'?'selected':''}>Admin</option>
               </select>
               <button onclick="doDeleteUser('${esc(u.email)}')" title="Delete user" class="text-xs px-2 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50">🗑</button>
-            </div>`:'<span class="text-xs text-gray-300">—</span>')}
+            </div>`:'<span class="text-xs text-gray-300">—</span>'))}
           </td>
         </tr>`).join('')}</tbody></table></div>`;
+    }, err=>{setLoading(false);toast(err.message,'error');});
+}
+function doApproveUser(email){
+  setLoading(true);
+  api('approveUser', {targetEmail:email,adminEmail:APP.user.email}, res=>{
+      setLoading(false);
+      toast(res.message,res.success?'success':'error');
+      if(res.success) renderUsers();
     }, err=>{setLoading(false);toast(err.message,'error');});
 }
 function doUpdateRole(email,role){
