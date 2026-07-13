@@ -41,6 +41,28 @@ body{font-family:'Inter',sans-serif;background:#f3f4f6;}
 #mascot-hand-l.covering{transform:translate(46px,54px) !important;opacity:1 !important;}
 #mascot-hand-r.covering{transform:translate(74px,54px) !important;opacity:1 !important;}
 
+/* Wrong-password reaction: quick head shake, then droopy sad eyes + a tear */
+#mascot-face-group.mascot-shake{animation:mascotShake .6s ease-in-out;transform-box:fill-box;transform-origin:50% 50%;}
+@keyframes mascotShake{
+  0%,100%{transform:rotate(0deg)}
+  15%{transform:rotate(-9deg)}
+  30%{transform:rotate(9deg)}
+  45%{transform:rotate(-7deg)}
+  60%{transform:rotate(7deg)}
+  75%{transform:rotate(-3deg)}
+  90%{transform:rotate(0deg)}
+}
+#login-mascot.mascot-sad #mascot-mouth-normal{opacity:0;}
+#login-mascot.mascot-sad #mascot-mouth-sad{opacity:1;}
+#login-mascot.mascot-sad #mascot-eyelid-l,#login-mascot.mascot-sad #mascot-eyelid-r{opacity:1;}
+#login-mascot.mascot-sad #mascot-tear{animation:mascotTearDrip 1.4s ease-in forwards;}
+@keyframes mascotTearDrip{
+  0%{opacity:0;transform:translateY(0)}
+  15%{opacity:1;transform:translateY(0)}
+  80%{opacity:1;transform:translateY(20px)}
+  100%{opacity:0;transform:translateY(24px)}
+}
+
 /* Toast */
 #toast-container{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px;}
 .toast{min-width:260px;max-width:340px;padding:11px 16px;border-radius:10px;font-size:13px;font-weight:500;box-shadow:0 4px 20px rgba(0,0,0,.12);display:flex;align-items:center;gap:9px;animation:slideUp .3s ease;}
@@ -147,12 +169,21 @@ body{font-family:'Inter',sans-serif;background:#f3f4f6;}
               <span class="mascot-dot"></span><span class="mascot-dot"></span><span class="mascot-dot"></span>
             </div>
             <svg viewBox="0 0 120 132" width="110" height="121">
+              <!-- mascot-face-group: wraps the whole character so a
+                   wrong-password shake can rotate everything together. -->
+              <g id="mascot-face-group">
               <circle cx="60" cy="54" r="32" fill="#f6dfc4"/>
               <circle cx="46" cy="52" r="10" fill="#ffffff" stroke="#e6c9a6" stroke-width="1"/>
               <circle cx="74" cy="52" r="10" fill="#ffffff" stroke="#e6c9a6" stroke-width="1"/>
               <circle id="mascot-pupil-l" cx="46" cy="54" r="4.5" fill="#2b2b2b" style="transition:transform .12s ease"/>
               <circle id="mascot-pupil-r" cx="74" cy="54" r="4.5" fill="#2b2b2b" style="transition:transform .12s ease"/>
-              <path d="M50,72 Q60,78 70,72" stroke="#7b0019" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+              <path id="mascot-mouth-normal" d="M50,72 Q60,78 70,72" stroke="#7b0019" stroke-width="2.5" fill="none" stroke-linecap="round" style="transition:opacity .25s ease"/>
+              <path id="mascot-mouth-sad" d="M52,77 Q60,72 68,77" stroke="#7b0019" stroke-width="2.5" fill="none" stroke-linecap="round" opacity="0" style="transition:opacity .25s ease"/>
+              <!-- droopy eyelids + tear: hidden at rest, shown on wrong
+                   password via the .mascot-sad class (see CSS + JS below). -->
+              <path id="mascot-eyelid-l" d="M37,48 Q46,42 55,48" stroke="#f6dfc4" stroke-width="7" fill="none" stroke-linecap="round" opacity="0" style="transition:opacity .25s ease"/>
+              <path id="mascot-eyelid-r" d="M65,48 Q74,42 83,48" stroke="#f6dfc4" stroke-width="7" fill="none" stroke-linecap="round" opacity="0" style="transition:opacity .25s ease"/>
+              <path id="mascot-tear" d="M46,62 Q49,68 46,72 Q43,68 46,62 Z" fill="#60a5fa" opacity="0"/>
               <path d="M26,40 Q26,10 60,10 Q94,10 94,40 L94,46 L26,46 Z" fill="#7b0019"/>
               <rect x="24" y="36" width="72" height="16" rx="7" fill="#7b0019"/>
               <text x="60" y="48" text-anchor="middle" font-family="Arial,sans-serif" font-weight="900" font-size="13" fill="#ffffff" letter-spacing="1">RTC</text>
@@ -177,6 +208,7 @@ body{font-family:'Inter',sans-serif;background:#f3f4f6;}
                 <g transform="translate(-11,-5) rotate(-12)"><rect x="-3" y="-8" width="6" height="16" rx="3" fill="#f6dfc4" stroke="#7b0019" stroke-width="2"/></g>
                 <g transform="translate(15,10) rotate(40)"><rect x="-3.5" y="-7" width="7" height="14" rx="3.5" fill="#f6dfc4" stroke="#7b0019" stroke-width="2"/></g>
               </g>
+              </g><!-- /mascot-face-group -->
             </svg>
           </div>
         </div>
@@ -669,6 +701,22 @@ function mascotShowDots(show){
   const d=document.getElementById('mascot-dots');
   if(d) d.classList.toggle('hidden',!show);
 }
+// Wrong-password reaction: quick head shake, then droopy sad eyes + a
+// tear that fades after a couple seconds. Purely visual, triggered from
+// the login failure branches below — doesn't touch auth logic at all.
+function mascotWrongPassword(){
+  const face=document.getElementById('mascot-face-group');
+  const wrap=document.getElementById('login-mascot');
+  if(!face || !wrap) return;
+  face.classList.remove('mascot-shake');
+  void face.offsetWidth; // force reflow so the shake can restart on repeated attempts
+  face.classList.add('mascot-shake');
+  wrap.classList.remove('mascot-sad');
+  setTimeout(()=>{
+    wrap.classList.add('mascot-sad');
+    setTimeout(()=>{ wrap.classList.remove('mascot-sad'); }, 1900);
+  }, 550);
+}
 ['emp-email','admin-email'].forEach(id=>{
   const el=document.getElementById(id);
   if(el) el.addEventListener('input',()=>mascotTrackEyes(el));
@@ -791,6 +839,9 @@ function switchAuthTab(tab){
   const pl=document.getElementById('mascot-pupil-l'), pr=document.getElementById('mascot-pupil-r');
   if(pl) pl.style.transform='translateX(0)';
   if(pr) pr.style.transform='translateX(0)';
+  const wrap=document.getElementById('login-mascot'), face=document.getElementById('mascot-face-group');
+  if(wrap) wrap.classList.remove('mascot-sad');
+  if(face) face.classList.remove('mascot-shake');
 }
 
 function showView(viewId){
@@ -812,7 +863,7 @@ function doEmpLogin(e){
       setBtnLoading('emp-login-btn',false,'Sign In');
       mascotShowDots(false);
       if(res.success){ onLoginSuccess(res.user); }
-      else toast(res.message,'error');
+      else { mascotWrongPassword(); toast(res.message,'error'); }
     }, err=>{setBtnLoading('emp-login-btn',false,'Sign In');mascotShowDots(false);toast(err.message,'error');});
 }
 
@@ -827,7 +878,7 @@ function doAdminLogin(e){
       setBtnLoading('admin-login-btn',false,'Sign In as Admin');
       mascotShowDots(false);
       if(res.success){ onLoginSuccess(res.user); }
-      else toast(res.message,'error');
+      else { mascotWrongPassword(); toast(res.message,'error'); }
     }, err=>{setBtnLoading('admin-login-btn',false,'Sign In as Admin');mascotShowDots(false);toast(err.message,'error');});
 }
 
