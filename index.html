@@ -1046,7 +1046,7 @@ function openBookingSystem(){
   const original=link?link.innerHTML:'';
   if(link) link.innerHTML='<span>⏳</span><span>Opening…</span>';
 
-  api('generateBookingSSOToken', {email:APP.user.email}, res=>{
+  api('generateBookingSSOToken', {email:APP.user.email, role:APP.user.role}, res=>{
       if(!res || !res.success){
         if(link) link.innerHTML=original;
         toast((res&&res.message)||'Could not open Booking System.','error');
