@@ -2202,7 +2202,42 @@ function lotusQuickChipsHtml(){
     +'<button class="lotus-chip" onclick="lotusShowMemoGuide()">📄 Find memos</button>'
     +'<button class="lotus-chip" onclick="lotusAskFileQuery()">🔍 Find a file</button>'
     +'<button class="lotus-chip" onclick="lotusShowBookingGuide()">🚪 Book a Room</button>'
+    +'<button class="lotus-chip" onclick="lotusShowMyBookings()">📋 My Bookings</button>'
     +'</div>';
+}
+
+// "My Bookings" shortcut — Pending only (own + CC'd), summary fields only.
+// Calls the Booking System over the network (see getMyPendingBookingsSummary
+// in Auth.gs) since this Portal has no direct access to that data. Anyone
+// wanting the full picture, or to reschedule/cancel, is pointed to open
+// the real Booking System via the existing SSO button.
+function lotusMyBookingLineHtml(b){
+  return '<div style="border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;margin-top:6px;font-size:12.5px;line-height:1.5">'
+    +'<div><strong>'+esc(b.title||'Booking')+'</strong></div>'
+    +'<div>'+(b.room==='Showroom'?'🏢 ':'🏛️ ')+esc(b.room||'')+' · 📅 '+esc(b.bookingDate||'')+' · 🕒 '+esc(b.timeRange||'')+'</div>'
+    +(b.isCc ? '<div style="color:#7b0019;font-weight:600">CC\'d</div>' : '')
+    +'</div>';
+}
+function lotusShowMyBookings(){
+  addLotusMsg('📋 My Bookings','user');
+  const email=(APP.user && APP.user.email) || '';
+  if(!email){ addLotusMsg('Please log in first.'+lotusQuickChipsHtml(),'bot'); return; }
+  api('getMyPendingBookingsSummary', {email:email}, function(r){
+    if(r && r.success && Array.isArray(r.bookings)){
+      if(r.bookings.length===0){
+        addLotusMsg('You have no pending bookings right now.'+lotusQuickChipsHtml(),'bot');
+        return;
+      }
+      const rows=r.bookings.map(lotusMyBookingLineHtml).join('');
+      addLotusMsg('📋 <strong>'+r.bookings.length+' pending booking(s)</strong>:'+rows
+        +'<div style="font-size:11.5px;color:#6b7280;margin-top:6px">This only shows Pending bookings. For full details, or to reschedule/cancel, open the Booking System.</div>'
+        +'<div class="lotus-quick-replies"><button class="lotus-chip" onclick="openBookingSystem()">Open Booking System</button></div>','bot');
+    } else {
+      addLotusMsg((r && r.message) || 'Could not check your bookings right now.'+lotusQuickChipsHtml(),'bot');
+    }
+  }, function(){
+    addLotusMsg('Network error — please try again.'+lotusQuickChipsHtml(),'bot');
+  });
 }
 function lotusGreet(){
   const name=lotusGetUserName();
@@ -2328,6 +2363,11 @@ function lotusSmallTalkReply(kind){
 }
 function lotusParseIntent(text){
   if(/\bmemo(s)?\b/.test(text)) return 'memo';
+  // Checked before the generic 'booking' intent below — "my bookings" /
+  // "pending bookings" doesn't actually match \bbook\b or \bbooking\b
+  // (no word boundary right after "book"/"booking" when followed by "s"),
+  // so without this it fell all the way through to the generic fallback.
+  if(/\bmy\s*booking(s)?\b/.test(text) || /\bpending\s*booking(s)?\b/.test(text) || /\bcheck\s*(my\s*)?booking(s)?\b/.test(text)) return 'mybookings';
   if(/\b(book|booking|showroom|masflex|cascade|conference)\b/.test(text)) return 'booking';
   if(/\b(file|document|files|documents|saan|hanapin|nasaan|locate)\b/.test(text)) return 'file';
   return null;
@@ -2382,20 +2422,20 @@ function sendLotusMessage(){
   const norm=lower.replace(/\s+/g,' ').trim();
   Lotus.repeatStreak=(norm && norm===Lotus.lastMsgNorm) ? Lotus.repeatStreak+1 : 1;
   Lotus.lastMsgNorm=norm;
-  if(Lotus.repeatStreak>=3){ addLotusMsg('TANGA','bot'); return; }
+  if(Lotus.repeatStreak>=3){ addLotusMsg('hehehe','bot'); return; }
 
   if(lotusIsDoItYourself(lower)){
     Lotus.doItYourselfCount++;
-    addLotusMsg(Lotus.doItYourselfCount>=3 ? 'TANGA' : 'No. You do it yourself.','bot');
+    addLotusMsg(Lotus.doItYourselfCount>=3 ? 'hehehe' : 'No. You do it yourself.','bot');
     return;
   }
   if(lotusIsMayPasok(lower)){ addLotusMsg('SMTD','bot'); return; }
   if(lotusIsSalaryTalk(lower)){
     Lotus.salaryHitCount++;
-    addLotusMsg(Lotus.salaryHitCount>1 ? 'TANGA' : 'KALOKOHAN','bot');
+    addLotusMsg(Lotus.salaryHitCount>1 ? 'hehehe' : 'SMTD','bot');
     return;
   }
-  if(lotusIsGibberish(lower)){ addLotusMsg('KALOKOHAN','bot'); return; }
+  if(lotusIsGibberish(lower)){ addLotusMsg('SMTD','bot'); return; }
 
   // A file/topic prompt is waiting on this exact message — search with it
   // directly rather than running it through greeting/intent detection.
@@ -2417,6 +2457,7 @@ function sendLotusMessage(){
     lotusShowMemoGuide();
     return;
   }
+  if(intent==='mybookings'){ lotusShowMyBookings(); return; }
   if(intent==='booking'){ lotusShowBookingGuide(); return; }
   if(intent==='file'){
     const q=lotusExtractFileQuery(lower);
