@@ -111,51 +111,51 @@ body{font-family:'Inter',sans-serif;background:#f3f4f6;}
 /* Folder contents row */
 .folder-file-row:hover{background:#fff8f8;}
 
-/* ── Ask Lotus (portal guide chatbot) ──────────────────────────── */
-.lotus-wrap{position:fixed;right:20px;bottom:20px;z-index:140;display:none;}
-.lotus-wrap.show{display:block;}
-.lotus-bubble{width:56px;height:56px;border-radius:50%;background:transparent;color:#fff;border:none;font-size:22px;cursor:pointer;box-shadow:none;padding:0;display:flex;align-items:center;justify-content:center;transition:transform .15s;}
-.lotus-bubble:hover{transform:scale(1.06);}
-/* Lotus's logo (custom cartoon face), scaled via transform from a fixed 350x350 canvas */
-.lotus-logo{position:relative;display:inline-block;overflow:hidden;border-radius:50%;flex-shrink:0;box-shadow:0 8px 30px rgba(0,0,0,.25);}
-.lotus-logo-canvas{width:350px;height:350px;background-color:#ff7675;border:8px solid #1e272e;border-radius:50%;position:absolute;top:0;left:0;transform-origin:top left;box-sizing:border-box;overflow:hidden;}
-.lotus-logo-face{position:absolute;top:85px;left:50%;transform:translateX(-50%);width:170px;height:200px;background-color:#ffd2a1;border:6px solid #1e272e;border-radius:85px 85px 75px 75px;z-index:2;box-sizing:border-box;}
-.lotus-logo-ear{position:absolute;top:140px;width:35px;height:45px;background-color:#ffd2a1;border:6px solid #1e272e;border-radius:50%;z-index:1;box-sizing:border-box;}
-.lotus-logo-ear.left{left:70px;transform:rotate(-15deg);border-right:none;}
-.lotus-logo-ear.right{right:70px;transform:rotate(15deg);border-left:none;}
-.lotus-logo-hair{position:absolute;top:60px;left:50%;transform:translateX(-50%);width:182px;height:95px;background-color:#2d3436;border:6px solid #1e272e;border-radius:90px 90px 45px 45px;z-index:3;box-sizing:border-box;}
-.lotus-logo-eyebrows{position:absolute;top:65px;width:100%;display:flex;justify-content:space-between;padding:0 20px;box-sizing:border-box;z-index:5;}
-.lotus-logo-eyebrow{width:58px;height:18px;background-color:#2d3436;border:3px solid #1e272e;border-radius:4px;box-sizing:border-box;}
-.lotus-logo-eyebrow.left{transform:rotate(28deg);}
-.lotus-logo-eyebrow.right{transform:rotate(-28deg);}
-.lotus-logo-eyes{position:absolute;top:82px;width:100%;display:flex;justify-content:space-between;padding:0 28px;box-sizing:border-box;z-index:4;}
-.lotus-logo-eye{width:42px;height:20px;background-color:#fff;border:5px solid #1e272e;border-radius:50% 50% 10% 10%;position:relative;overflow:hidden;box-sizing:border-box;}
-.lotus-logo-pupil{position:absolute;bottom:-2px;left:50%;transform:translateX(-50%);width:18px;height:18px;background-color:#1e272e;border-radius:50%;}
-.lotus-logo-nose{position:absolute;top:105px;left:50%;transform:translateX(-50%);width:18px;height:24px;border-right:5px solid #1e272e;border-bottom:5px solid #1e272e;border-radius:0 0 8px 0;z-index:4;}
-.lotus-logo-mouth{position:absolute;bottom:35px;left:50%;transform:translateX(-50%) rotate(5deg);width:72px;height:32px;z-index:4;}
-.lotus-logo-smirk{width:100%;height:100%;border-bottom:6px solid #1e272e;border-radius:0 0 50% 15%;}
-.lotus-panel{position:absolute;right:0;bottom:70px;width:340px;max-width:calc(100vw - 32px);height:460px;max-height:70vh;background:#fff;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.16);display:none;flex-direction:column;overflow:hidden;}
-.lotus-panel.open{display:flex;animation:fadeIn .18s ease;}
-.lotus-header{background:#7b0019;color:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
-.lotus-header-title{font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px;}
-.lotus-close{background:none;border:none;color:rgba(255,255,255,.85);cursor:pointer;font-size:16px;padding:2px;}
-.lotus-close:hover{color:#fff;}
-.lotus-messages{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;background:#f9fafb;}
-.lotus-msg{max-width:88%;font-size:12.5px;line-height:1.5;padding:9px 12px;border-radius:12px;}
-.lotus-msg-bot{align-self:flex-start;background:#fff;border:1px solid #e5e7eb;border-bottom-left-radius:3px;color:#1f2937;}
-.lotus-msg-user{align-self:flex-end;background:#7b0019;color:#fff;border-bottom-right-radius:3px;}
-.lotus-quick-replies{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
-.lotus-chip{background:#fff0f0;color:#7b0019;border:none;border-radius:20px;padding:6px 12px;font-size:11.5px;font-weight:700;cursor:pointer;transition:background .15s;}
-.lotus-chip:hover{background:#ffd6d6;}
-.lotus-input-row{display:flex;gap:8px;padding:12px;border-top:1px solid #e5e7eb;flex-shrink:0;background:#fff;}
-.lotus-input-row input{flex:1;border:1px solid #e5e7eb;border-radius:20px;padding:9px 14px;font-size:12.5px;font-family:'Inter',sans-serif;}
-.lotus-input-row input:focus{outline:none;border-color:#7b0019;}
-.lotus-input-row button{width:36px;height:36px;border-radius:50%;background:#7b0019;color:#fff;border:none;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
-/* Briefly highlights a Feed post that Lotus has just jumped the user to */
-.lotus-highlight{outline:3px solid #7b0019;outline-offset:2px;transition:outline-color .4s ease;}
+/* ── Ask RTC-AI (portal guide chatbot) ──────────────────────────── */
+.rtc-ai-wrap{position:fixed;right:20px;bottom:20px;z-index:140;display:none;}
+.rtc-ai-wrap.show{display:block;}
+.rtc-ai-bubble{width:56px;height:56px;border-radius:50%;background:transparent;color:#fff;border:none;font-size:22px;cursor:pointer;box-shadow:none;padding:0;display:flex;align-items:center;justify-content:center;transition:transform .15s;}
+.rtc-ai-bubble:hover{transform:scale(1.06);}
+/* RTC-AI's logo (custom cartoon face), scaled via transform from a fixed 350x350 canvas */
+.rtc-ai-logo{position:relative;display:inline-block;overflow:hidden;border-radius:50%;flex-shrink:0;box-shadow:0 8px 30px rgba(0,0,0,.25);}
+.rtc-ai-logo-canvas{width:350px;height:350px;background-color:#ff7675;border:8px solid #1e272e;border-radius:50%;position:absolute;top:0;left:0;transform-origin:top left;box-sizing:border-box;overflow:hidden;}
+.rtc-ai-logo-face{position:absolute;top:85px;left:50%;transform:translateX(-50%);width:170px;height:200px;background-color:#ffd2a1;border:6px solid #1e272e;border-radius:85px 85px 75px 75px;z-index:2;box-sizing:border-box;}
+.rtc-ai-logo-ear{position:absolute;top:140px;width:35px;height:45px;background-color:#ffd2a1;border:6px solid #1e272e;border-radius:50%;z-index:1;box-sizing:border-box;}
+.rtc-ai-logo-ear.left{left:70px;transform:rotate(-15deg);border-right:none;}
+.rtc-ai-logo-ear.right{right:70px;transform:rotate(15deg);border-left:none;}
+.rtc-ai-logo-hair{position:absolute;top:60px;left:50%;transform:translateX(-50%);width:182px;height:95px;background-color:#2d3436;border:6px solid #1e272e;border-radius:90px 90px 45px 45px;z-index:3;box-sizing:border-box;}
+.rtc-ai-logo-eyebrows{position:absolute;top:65px;width:100%;display:flex;justify-content:space-between;padding:0 20px;box-sizing:border-box;z-index:5;}
+.rtc-ai-logo-eyebrow{width:58px;height:18px;background-color:#2d3436;border:3px solid #1e272e;border-radius:4px;box-sizing:border-box;}
+.rtc-ai-logo-eyebrow.left{transform:rotate(28deg);}
+.rtc-ai-logo-eyebrow.right{transform:rotate(-28deg);}
+.rtc-ai-logo-eyes{position:absolute;top:82px;width:100%;display:flex;justify-content:space-between;padding:0 28px;box-sizing:border-box;z-index:4;}
+.rtc-ai-logo-eye{width:42px;height:20px;background-color:#fff;border:5px solid #1e272e;border-radius:50% 50% 10% 10%;position:relative;overflow:hidden;box-sizing:border-box;}
+.rtc-ai-logo-pupil{position:absolute;bottom:-2px;left:50%;transform:translateX(-50%);width:18px;height:18px;background-color:#1e272e;border-radius:50%;}
+.rtc-ai-logo-nose{position:absolute;top:105px;left:50%;transform:translateX(-50%);width:18px;height:24px;border-right:5px solid #1e272e;border-bottom:5px solid #1e272e;border-radius:0 0 8px 0;z-index:4;}
+.rtc-ai-logo-mouth{position:absolute;bottom:35px;left:50%;transform:translateX(-50%) rotate(5deg);width:72px;height:32px;z-index:4;}
+.rtc-ai-logo-smirk{width:100%;height:100%;border-bottom:6px solid #1e272e;border-radius:0 0 50% 15%;}
+.rtc-ai-panel{position:absolute;right:0;bottom:70px;width:340px;max-width:calc(100vw - 32px);height:460px;max-height:70vh;background:#fff;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.16);display:none;flex-direction:column;overflow:hidden;}
+.rtc-ai-panel.open{display:flex;animation:fadeIn .18s ease;}
+.rtc-ai-header{background:#7b0019;color:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.rtc-ai-header-title{font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px;}
+.rtc-ai-close{background:none;border:none;color:rgba(255,255,255,.85);cursor:pointer;font-size:16px;padding:2px;}
+.rtc-ai-close:hover{color:#fff;}
+.rtc-ai-messages{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;background:#f9fafb;}
+.rtc-ai-msg{max-width:88%;font-size:12.5px;line-height:1.5;padding:9px 12px;border-radius:12px;}
+.rtc-ai-msg-bot{align-self:flex-start;background:#fff;border:1px solid #e5e7eb;border-bottom-left-radius:3px;color:#1f2937;}
+.rtc-ai-msg-user{align-self:flex-end;background:#7b0019;color:#fff;border-bottom-right-radius:3px;}
+.rtc-ai-quick-replies{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.rtc-ai-chip{background:#fff0f0;color:#7b0019;border:none;border-radius:20px;padding:6px 12px;font-size:11.5px;font-weight:700;cursor:pointer;transition:background .15s;}
+.rtc-ai-chip:hover{background:#ffd6d6;}
+.rtc-ai-input-row{display:flex;gap:8px;padding:12px;border-top:1px solid #e5e7eb;flex-shrink:0;background:#fff;}
+.rtc-ai-input-row input{flex:1;border:1px solid #e5e7eb;border-radius:20px;padding:9px 14px;font-size:12.5px;font-family:'Inter',sans-serif;}
+.rtc-ai-input-row input:focus{outline:none;border-color:#7b0019;}
+.rtc-ai-input-row button{width:36px;height:36px;border-radius:50%;background:#7b0019;color:#fff;border:none;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+/* Briefly highlights a Feed post that RTC-AI has just jumped the user to */
+.rtc-ai-highlight{outline:3px solid #7b0019;outline-offset:2px;transition:outline-color .4s ease;}
 @media (max-width:480px){
-  .lotus-wrap{right:14px;bottom:14px;}
-  .lotus-panel{width:calc(100vw - 28px);height:68vh;bottom:66px;}
+  .rtc-ai-wrap{right:14px;bottom:14px;}
+  .rtc-ai-panel{width:calc(100vw - 28px);height:68vh;bottom:66px;}
 }
 </style>
 </head>
@@ -1070,15 +1070,15 @@ function doLogout(){
   showView('view-emp-login');
   toast('Logged out successfully.','info');
 
-  // Hide Lotus along with the app, and clear his conversation so the next
+  // Hide RTC-AI along with the app, and clear his conversation so the next
   // person to log in on this device doesn't see the previous user's chat.
-  const lotusWrap=document.getElementById('lotusWrap');
-  if(lotusWrap) lotusWrap.classList.remove('show');
-  const lotusPanel=document.getElementById('lotusPanel');
-  if(lotusPanel) lotusPanel.classList.remove('open');
-  const lotusMessages=document.getElementById('lotusMessages');
-  if(lotusMessages) lotusMessages.innerHTML='';
-  Lotus={opened:false, pendingFileSearch:false, salaryHitCount:0, doItYourselfCount:0, lastMsgNorm:'', repeatStreak:0};
+  const rtcAiWrap=document.getElementById('rtcAiWrap');
+  if(rtcAiWrap) rtcAiWrap.classList.remove('show');
+  const rtcAiPanel=document.getElementById('rtcAiPanel');
+  if(rtcAiPanel) rtcAiPanel.classList.remove('open');
+  const rtcAiMessages=document.getElementById('rtcAiMessages');
+  if(rtcAiMessages) rtcAiMessages.innerHTML='';
+  RtcAi={opened:false, pendingFileSearch:false, salaryHitCount:0, doItYourselfCount:0, lastMsgNorm:'', repeatStreak:0};
 }
 
 
@@ -1135,10 +1135,10 @@ function renderApp(){
   document.getElementById('app').classList.remove('hidden');
   navigateTo('feed');
 
-  // Ask Lotus only makes sense once someone's actually signed in — keep it
+  // Ask RTC-AI only makes sense once someone's actually signed in — keep it
   // off the public login screen entirely.
-  const lotusWrap=document.getElementById('lotusWrap');
-  if(lotusWrap) lotusWrap.classList.add('show');
+  const rtcAiWrap=document.getElementById('rtcAiWrap');
+  if(rtcAiWrap) rtcAiWrap.classList.add('show');
 }
 
 function navigateTo(panel){
@@ -2151,58 +2151,58 @@ function shimmerCards(n){return Array.from({length:n}).map(()=>`<div class="bg-w
 function shimmerPosts(n){return Array.from({length:n}).map(()=>`<div class="post-card p-4 space-y-3"><div class="flex gap-3"><div class="shimmer w-10 h-10 rounded-full shrink-0"></div><div class="flex-1 space-y-2"><div class="shimmer h-3.5 w-48 rounded"></div><div class="shimmer h-2.5 w-24 rounded"></div></div></div><div class="shimmer h-4 w-3/4 rounded"></div><div class="shimmer h-3 w-full rounded"></div><div class="shimmer h-3 w-5/6 rounded"></div></div>`).join('');}
 
 // ════════════════════════════════════════════════════════════
-// 🤖  ASK LOTUS — rule-based portal guide, no API key / no AI model.
+// 🤖  ASK RTC-AI — rule-based portal guide, no API key / no AI model.
 // Purely a navigation/orientation helper: guides to Feed for memos,
 // hands off to the real SSO flow (openBookingSystem()) for booking
 // questions, and answers basic greetings/small talk. It never fetches
 // or fabricates booking availability data itself — that lives in the
-// Booking System's own "Ask Lotus", reached via the same SSO link.
+// Booking System's own "Ask RTC-AI", reached via the same SSO link.
 // ════════════════════════════════════════════════════════════
-var Lotus = { opened:false, pendingFileSearch:false, salaryHitCount:0, doItYourselfCount:0, lastMsgNorm:'', repeatStreak:0 };
+var RtcAi = { opened:false, pendingFileSearch:false, salaryHitCount:0, doItYourselfCount:0, lastMsgNorm:'', repeatStreak:0 };
 
-function lotusGetUserName(){
+function rtcAiGetUserName(){
   if(APP.user && APP.user.fullName) return APP.user.fullName.trim().split(' ')[0];
   return null;
 }
-function lotusTimeGreetingWord(){
+function rtcAiTimeGreetingWord(){
   const h=new Date().getHours();
   if(h<12) return 'Good morning';
   if(h<18) return 'Good afternoon';
   return 'Good evening';
 }
-function toggleLotus(force){
-  const panel=document.getElementById('lotusPanel');
+function toggleRtcAi(force){
+  const panel=document.getElementById('rtcAiPanel');
   const open=(force!==undefined)?!!force:!panel.classList.contains('open');
   panel.classList.toggle('open',open);
-  if(open && !Lotus.opened){
-    Lotus.opened=true;
-    lotusGreet();
+  if(open && !RtcAi.opened){
+    RtcAi.opened=true;
+    rtcAiGreet();
   } else if(!open){
-    const box=document.getElementById('lotusMessages');
+    const box=document.getElementById('rtcAiMessages');
     if(box) box.innerHTML='';
-    Lotus={opened:false, pendingFileSearch:false, salaryHitCount:0, doItYourselfCount:0, lastMsgNorm:'', repeatStreak:0};
+    RtcAi={opened:false, pendingFileSearch:false, salaryHitCount:0, doItYourselfCount:0, lastMsgNorm:'', repeatStreak:0};
   }
-  if(open) setTimeout(()=>{const inp=document.getElementById('lotusInput'); if(inp) inp.focus();},50);
+  if(open) setTimeout(()=>{const inp=document.getElementById('rtcAiInput'); if(inp) inp.focus();},50);
 }
-function lotusScrollBottom(){
-  const box=document.getElementById('lotusMessages');
+function rtcAiScrollBottom(){
+  const box=document.getElementById('rtcAiMessages');
   if(box) box.scrollTop=box.scrollHeight;
 }
-function addLotusMsg(html,from){
-  const box=document.getElementById('lotusMessages');
+function addRtcAiMsg(html,from){
+  const box=document.getElementById('rtcAiMessages');
   const div=document.createElement('div');
-  div.className='lotus-msg '+(from==='user'?'lotus-msg-user':'lotus-msg-bot');
+  div.className='rtc-ai-msg '+(from==='user'?'rtc-ai-msg-user':'rtc-ai-msg-bot');
   div.innerHTML=html;
   box.appendChild(div);
-  lotusScrollBottom();
+  rtcAiScrollBottom();
   return div;
 }
-function lotusQuickChipsHtml(){
-  return '<div class="lotus-quick-replies">'
-    +'<button class="lotus-chip" onclick="lotusShowMemoGuide()">📄 Find memos</button>'
-    +'<button class="lotus-chip" onclick="lotusAskFileQuery()">🔍 Find a file</button>'
-    +'<button class="lotus-chip" onclick="lotusShowBookingGuide()">🚪 Book a Room</button>'
-    +'<button class="lotus-chip" onclick="lotusShowMyBookings()">📋 My Bookings</button>'
+function rtcAiQuickChipsHtml(){
+  return '<div class="rtc-ai-quick-replies">'
+    +'<button class="rtc-ai-chip" onclick="rtcAiShowMemoGuide()">📄 Find memos</button>'
+    +'<button class="rtc-ai-chip" onclick="rtcAiAskFileQuery()">🔍 Find a file</button>'
+    +'<button class="rtc-ai-chip" onclick="rtcAiShowBookingGuide()">🚪 Book a Room</button>'
+    +'<button class="rtc-ai-chip" onclick="rtcAiShowMyBookings()">📋 My Bookings</button>'
     +'</div>';
 }
 
@@ -2211,54 +2211,54 @@ function lotusQuickChipsHtml(){
 // in Auth.gs) since this Portal has no direct access to that data. Anyone
 // wanting the full picture, or to reschedule/cancel, is pointed to open
 // the real Booking System via the existing SSO button.
-function lotusMyBookingLineHtml(b){
+function rtcAiMyBookingLineHtml(b){
   return '<div style="border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;margin-top:6px;font-size:12.5px;line-height:1.5">'
     +'<div><strong>'+esc(b.title||'Booking')+'</strong></div>'
     +'<div>'+(b.room==='Showroom'?'🏢 ':'🏛️ ')+esc(b.room||'')+' · 📅 '+esc(b.bookingDate||'')+' · 🕒 '+esc(b.timeRange||'')+'</div>'
     +(b.isCc ? '<div style="color:#7b0019;font-weight:600">CC\'d</div>' : '')
     +'</div>';
 }
-function lotusShowMyBookings(){
-  addLotusMsg('📋 My Bookings','user');
+function rtcAiShowMyBookings(){
+  addRtcAiMsg('📋 My Bookings','user');
   const email=(APP.user && APP.user.email) || '';
-  if(!email){ addLotusMsg('Please log in first.'+lotusQuickChipsHtml(),'bot'); return; }
+  if(!email){ addRtcAiMsg('Please log in first.'+rtcAiQuickChipsHtml(),'bot'); return; }
   api('getMyPendingBookingsSummary', {email:email}, function(r){
     if(r && r.success && Array.isArray(r.bookings)){
       if(r.bookings.length===0){
-        addLotusMsg('You have no pending bookings right now.'+lotusQuickChipsHtml(),'bot');
+        addRtcAiMsg('You have no pending bookings right now.'+rtcAiQuickChipsHtml(),'bot');
         return;
       }
-      const rows=r.bookings.map(lotusMyBookingLineHtml).join('');
-      addLotusMsg('📋 <strong>'+r.bookings.length+' pending booking(s)</strong>:'+rows
+      const rows=r.bookings.map(rtcAiMyBookingLineHtml).join('');
+      addRtcAiMsg('📋 <strong>'+r.bookings.length+' pending booking(s)</strong>:'+rows
         +'<div style="font-size:11.5px;color:#6b7280;margin-top:6px">This only shows Pending bookings. For full details, or to reschedule/cancel, open the Booking System.</div>'
-        +'<div class="lotus-quick-replies"><button class="lotus-chip" onclick="openBookingSystem()">Open Booking System</button></div>','bot');
+        +'<div class="rtc-ai-quick-replies"><button class="rtc-ai-chip" onclick="openBookingSystem()">Open Booking System</button></div>','bot');
     } else {
-      addLotusMsg((r && r.message) || 'Could not check your bookings right now.'+lotusQuickChipsHtml(),'bot');
+      addRtcAiMsg((r && r.message) || 'Could not check your bookings right now.'+rtcAiQuickChipsHtml(),'bot');
     }
   }, function(){
-    addLotusMsg('Network error — please try again.'+lotusQuickChipsHtml(),'bot');
+    addRtcAiMsg('Network error — please try again.'+rtcAiQuickChipsHtml(),'bot');
   });
 }
-function lotusGreet(){
-  const name=lotusGetUserName();
-  const hello=lotusTimeGreetingWord()+(name?', '+name:'')+'! ';
-  addLotusMsg(hello+'I\'m <strong>Lotus</strong>, your RTC AI Assistant for the Employee Portal. I can help you find memos and announcements, search for a file, or get you to Book a Room. What do you need?'+lotusQuickChipsHtml(),'bot');
+function rtcAiGreet(){
+  const name=rtcAiGetUserName();
+  const hello=rtcAiTimeGreetingWord()+(name?', '+name:'')+'! ';
+  addRtcAiMsg(hello+'I\'m <strong>RTC-AI</strong>, your RTC AI Assistant for the Employee Portal. I can help you find memos and announcements, search for a file, or get you to Book a Room. What do you need?'+rtcAiQuickChipsHtml(),'bot');
 }
-function lotusShowMemoGuide(){
-  addLotusMsg('📄 Company memos, announcements, and updates all show up in the <strong>Feed</strong> — that\'s the home tab. Memo posts are marked with a 📄 tag so they\'re easy to spot. Want me to take you there?'
-    +'<div class="lotus-quick-replies"><button class="lotus-chip" onclick="closeSidebar();navigateTo(\'feed\');addLotusMsg(\'Taking you to the Feed…\',\'user\')">Go to Feed</button></div>','bot');
+function rtcAiShowMemoGuide(){
+  addRtcAiMsg('📄 Company memos, announcements, and updates all show up in the <strong>Feed</strong> — that\'s the home tab. Memo posts are marked with a 📄 tag so they\'re easy to spot. Want me to take you there?'
+    +'<div class="rtc-ai-quick-replies"><button class="rtc-ai-chip" onclick="closeSidebar();navigateTo(\'feed\');addRtcAiMsg(\'Taking you to the Feed…\',\'user\')">Go to Feed</button></div>','bot');
 }
-function lotusShowBookingGuide(){
-  addLotusMsg('🚪 If you want to check availability or book the Showroom, Masflex Room, or Cascade Room, tap the <strong>Book a Room</strong> button below — it\'ll take you straight into the Booking System, already signed in. I can help you check real-time room availability there too!'
-    +'<div class="lotus-quick-replies"><button class="lotus-chip" onclick="openBookingSystem()">Book a Room</button></div>','bot');
+function rtcAiShowBookingGuide(){
+  addRtcAiMsg('🚪 If you want to check availability or book the Showroom, Masflex Room, or Cascade Room, tap the <strong>Book a Room</strong> button below — it\'ll take you straight into the Booking System, already signed in. I can help you check real-time room availability there too!'
+    +'<div class="rtc-ai-quick-replies"><button class="rtc-ai-chip" onclick="openBookingSystem()">Book a Room</button></div>','bot');
 }
-function lotusAskFileQuery(){
-  Lotus.pendingFileSearch=true;
-  addLotusMsg('Sure — what\'s the topic, or the file name (or part of it)?','bot');
+function rtcAiAskFileQuery(){
+  RtcAi.pendingFileSearch=true;
+  addRtcAiMsg('Sure — what\'s the topic, or the file name (or part of it)?','bot');
 }
 // Best-effort extraction of a search term from a free-typed sentence —
 // strips common lead-in phrases/stopwords and returns whatever's left.
-function lotusExtractFileQuery(text){
+function rtcAiExtractFileQuery(text){
   return text
     .replace(/\b(where('?s)?\s+is|find|search(?:\s+for)?|look(?:\s+for)?|locate|tell\s+me\s+about|know\s+more\s+about|about|regarding|hanapin|saan(?:\s+ang|\s+yung|\s+nakalagay)?|nasaan(?:\s+ang|\s+yung)?)\b/gi,' ')
     .replace(/\b(the|a|an|file|document|files|documents|memo|memos|po|ba|ang|yung)\b/gi,' ')
@@ -2269,10 +2269,10 @@ function lotusExtractFileQuery(text){
 // Smart search: tries to match the query against actual Feed posts first
 // (memos/announcements) so a real question can get a short, cited answer.
 // If nothing relevant is posted, falls back to the Folders/Files library.
-function lotusSearchKnowledge(query){
-  Lotus.pendingFileSearch=false;
+function rtcAiSearchKnowledge(query){
+  RtcAi.pendingFileSearch=false;
   const q=(query||'').trim().toLowerCase();
-  if(!q || q.length<2){ lotusAskFileQuery(); return; }
+  if(!q || q.length<2){ rtcAiAskFileQuery(); return; }
   api('getPosts', {limit:200, userEmail:(APP.user&&APP.user.email)||''}, function(posts){
     if(Array.isArray(posts)){
       const matches=posts.filter(function(p){
@@ -2281,18 +2281,18 @@ function lotusSearchKnowledge(query){
       });
       if(matches.length>0){
         const top=matches[0];
-        addLotusMsg('To know more about <strong>'+esc(top.title||'this')+'</strong>, please study the memo below:'
-          +'<div style="margin-top:8px;padding:8px 10px;background:#fff0f0;border-radius:8px"><a href="#" onclick="lotusGoToPost(\''+esc(top.postId)+'\');return false;" style="color:#7b0019;font-weight:700;text-decoration:underline">📄 '+esc(top.title||'View memo')+'</a></div>'
-          +lotusQuickChipsHtml(),'bot');
+        addRtcAiMsg('To know more about <strong>'+esc(top.title||'this')+'</strong>, please study the memo below:'
+          +'<div style="margin-top:8px;padding:8px 10px;background:#fff0f0;border-radius:8px"><a href="#" onclick="rtcAiGoToPost(\''+esc(top.postId)+'\');return false;" style="color:#7b0019;font-weight:700;text-decoration:underline">📄 '+esc(top.title||'View memo')+'</a></div>'
+          +rtcAiQuickChipsHtml(),'bot');
         return;
       }
     }
-    lotusSearchFiles(query);
-  }, function(){ lotusSearchFiles(query); });
+    rtcAiSearchFiles(query);
+  }, function(){ rtcAiSearchFiles(query); });
 }
 // Scrolls to (and briefly highlights) a specific Feed post — used when
-// Lotus cites a memo so the user lands right on it, not just on the Feed.
-function lotusGoToPost(postId){
+// RTC-AI cites a memo so the user lands right on it, not just on the Feed.
+function rtcAiGoToPost(postId){
   closeSidebar();
   navigateTo('feed');
   let tries=0;
@@ -2300,8 +2300,8 @@ function lotusGoToPost(postId){
     const el=document.getElementById('post-'+postId);
     if(el){
       el.scrollIntoView({behavior:'smooth', block:'center'});
-      el.classList.add('lotus-highlight');
-      setTimeout(function(){ el.classList.remove('lotus-highlight'); }, 2500);
+      el.classList.add('rtc-ai-highlight');
+      setTimeout(function(){ el.classList.remove('rtc-ai-highlight'); }, 2500);
     } else if(tries<20){
       tries++;
       setTimeout(tryScroll,150);
@@ -2309,37 +2309,37 @@ function lotusGoToPost(postId){
   };
   setTimeout(tryScroll,200);
 }
-function lotusSearchFiles(query){
-  Lotus.pendingFileSearch=false;
+function rtcAiSearchFiles(query){
+  RtcAi.pendingFileSearch=false;
   const q=(query||'').trim().toLowerCase();
-  if(!q){ lotusAskFileQuery(); return; }
+  if(!q){ rtcAiAskFileQuery(); return; }
   api('getFiles', {}, function(files){
     if(!Array.isArray(files)){
-      addLotusMsg('Sorry, I couldn\'t search files right now'+(files&&files.message?': '+esc(files.message):'')+'.'+lotusQuickChipsHtml(),'bot');
+      addRtcAiMsg('Sorry, I couldn\'t search files right now'+(files&&files.message?': '+esc(files.message):'')+'.'+rtcAiQuickChipsHtml(),'bot');
       return;
     }
     const matches=files.filter(f=>(f.fileName||'').toLowerCase().includes(q) || (f.folderName||'').toLowerCase().includes(q));
     if(matches.length===0){
-      addLotusMsg('I couldn\'t find a memo or file matching "'+esc(query)+'". Try a shorter or different keyword, or browse the <strong>Feed</strong>/<strong>Documents</strong> directly.'+lotusQuickChipsHtml(),'bot');
+      addRtcAiMsg('I couldn\'t find a memo or file matching "'+esc(query)+'". Try a shorter or different keyword, or browse the <strong>Feed</strong>/<strong>Documents</strong> directly.'+rtcAiQuickChipsHtml(),'bot');
       return;
     }
     const list=matches.slice(0,6).map(f=>'<div style="margin-top:6px"><a href="'+esc(f.viewLink||'#')+'" target="_blank" rel="noopener" style="color:#7b0019;font-weight:700;text-decoration:underline">'+esc(f.fileName||'Untitled')+'</a><br><span style="font-size:11px;color:#6b7280">📁 '+esc(f.folderName||'Uncategorized')+'</span></div>').join('');
     const more=matches.length>6?'<div style="font-size:11px;color:#6b7280;margin-top:6px">+'+(matches.length-6)+' more match(es) — try a more specific keyword.</div>':'';
-    addLotusMsg('📄 Found '+matches.length+' file(s):'+list+more+lotusQuickChipsHtml(),'bot');
+    addRtcAiMsg('📄 Found '+matches.length+' file(s):'+list+more+rtcAiQuickChipsHtml(),'bot');
   }, function(err){
-    addLotusMsg('Sorry, I couldn\'t search files right now: '+esc(err.message)+'.'+lotusQuickChipsHtml(),'bot');
+    addRtcAiMsg('Sorry, I couldn\'t search files right now: '+esc(err.message)+'.'+rtcAiQuickChipsHtml(),'bot');
   });
 }
 // Lightweight keyword matching — not real NLU. Anything unrecognized
 // falls back to the quick-reply chips instead of guessing.
-function lotusParseGreeting(text){
+function rtcAiParseGreeting(text){
   if(/good\s*morning/.test(text)) return 'Good morning';
   if(/good\s*afternoon/.test(text)) return 'Good afternoon';
   if(/good\s*evening/.test(text)) return 'Good evening';
   if(/\b(hi|hello|hey|kumusta|magandang\s*(umaga|hapon|gabi))\b/.test(text)) return 'Hello';
   return null;
 }
-function lotusParseSmallTalk(text){
+function rtcAiParseSmallTalk(text){
   if(/\blove[sd]?\b/.test(text)) return 'love';
   if(/\b(thank\s*you|thanks|thank\s*u|salamat)\b/.test(text)) return 'thanks';
   if(/\b(bye|goodbye|see\s*you|paalam|ingat)\b/.test(text)) return 'bye';
@@ -2347,21 +2347,21 @@ function lotusParseSmallTalk(text){
   if(/^\s*(ok|okay|sige|alright)\s*[.!]?\s*$/.test(text)) return 'ok';
   return null;
 }
-function lotusSmallTalkReply(kind){
-  const name=lotusGetUserName();
+function rtcAiSmallTalkReply(kind){
+  const name=rtcAiGetUserName();
   if(kind==='love'){
-    addLotusMsg('I love you too'+(name?', '+name:'')+'! 💕 Anything else I can help you find?'+lotusQuickChipsHtml(),'bot');
+    addRtcAiMsg('I love you too'+(name?', '+name:'')+'! 💕 Anything else I can help you find?'+rtcAiQuickChipsHtml(),'bot');
   } else if(kind==='thanks'){
-    addLotusMsg('You\'re welcome'+(name?', '+name:'')+'! Anything else you need?'+lotusQuickChipsHtml(),'bot');
+    addRtcAiMsg('You\'re welcome'+(name?', '+name:'')+'! Anything else you need?'+rtcAiQuickChipsHtml(),'bot');
   } else if(kind==='bye'){
-    addLotusMsg('Bye'+(name?', '+name:'')+'! I\'ll be here if you need me. 👋','bot');
+    addRtcAiMsg('Bye'+(name?', '+name:'')+'! I\'ll be here if you need me. 👋','bot');
   } else if(kind==='help'){
-    addLotusMsg('I\'m <strong>Lotus</strong>, the RTC AI Assistant! I don\'t use AI models — I just guide you around the Portal: memos/announcements are in the Feed, I can search your actual files under Folders/Documents by name, and I can point you to Book a Room when you need the Showroom or a conference room.'+lotusQuickChipsHtml(),'bot');
+    addRtcAiMsg('I\'m <strong>RTC-AI</strong>, the RTC AI Assistant! I don\'t use AI models — I just guide you around the Portal: memos/announcements are in the Feed, I can search your actual files under Folders/Documents by name, and I can point you to Book a Room when you need the Showroom or a conference room.'+rtcAiQuickChipsHtml(),'bot');
   } else if(kind==='ok'){
-    addLotusMsg('👍 Let me know if you need anything else.'+lotusQuickChipsHtml(),'bot');
+    addRtcAiMsg('👍 Let me know if you need anything else.'+rtcAiQuickChipsHtml(),'bot');
   }
 }
-function lotusParseIntent(text){
+function rtcAiParseIntent(text){
   if(/\bmemo(s)?\b/.test(text)) return 'memo';
   // Checked before the generic 'booking' intent below — "my bookings" /
   // "pending bookings" doesn't actually match \bbook\b or \bbooking\b
@@ -2376,7 +2376,7 @@ function lotusParseIntent(text){
 // letters with no vowels, very few vowels, or a long run of consonants —
 // real words/sentences don't look like this. Short tokens (<3 letters,
 // e.g. "ok", "hi") are left alone since there's too little to judge.
-function lotusIsGibberish(text){
+function rtcAiIsGibberish(text){
   const trimmed=text.trim();
   if(!trimmed || /\s/.test(trimmed)) return false;
   const letters=trimmed.replace(/[^a-zA-Z]/g,'');
@@ -2386,133 +2386,133 @@ function lotusIsGibberish(text){
   if(/[^aeiou\s]{4,}/i.test(letters)) return true;
   return false;
 }
-// Playful refusal for "do it for me" requests — Lotus answers questions
+// Playful refusal for "do it for me" requests — RTC-AI answers questions
 // and points you where to go, it doesn't fill out forms for you.
-function lotusIsDoItYourself(text){
+function rtcAiIsDoItYourself(text){
   return /\bcan you (make|fill\s*(up|out)|book|create|write|do|complete|submit|analyze|upload)\b/i.test(text)
     || /\bbook\s*(for\s*)?me\b/i.test(text)
     || /\banalyze\b/i.test(text);
 }
 // "Is there work/class tomorrow" style questions — common PH office joke.
-function lotusIsMayPasok(text){
+function rtcAiIsMayPasok(text){
   return /\bpasok\b/i.test(text)
     || /\bis there\s+(work|school|class)\b/i.test(text)
     || /\b(work|school|class)\s+tomorrow\b/i.test(text)
     || /\bno\s+class(es)?\b/i.test(text);
 }
-function lotusIsSalaryTalk(text){
+function rtcAiIsSalaryTalk(text){
   return /\b(salary|salaries|promote|promoted|promotion)\b/i.test(text);
 }
 // Reads like a genuine question even without an explicit file/memo
 // keyword — worth trying the knowledge search before giving up.
-function lotusLooksLikeQuestion(text){
+function rtcAiLooksLikeQuestion(text){
   const t=text.trim();
   return /\?\s*$/.test(t) || /^\s*(how|what|why|when|where|paano|ano|saan|bakit|pwede)\b/i.test(t);
 }
 
-function sendLotusMessage(){
-  const input=document.getElementById('lotusInput');
+function sendRtcAiMessage(){
+  const input=document.getElementById('rtcAiInput');
   const text=input.value.trim();
   if(!text) return;
-  addLotusMsg(esc(text),'user');
+  addRtcAiMsg(esc(text),'user');
   input.value='';
   const lower=text.toLowerCase();
 
-  // Same exact message sent 3x in a row -> Lotus calls it out, regardless of topic.
+  // Same exact message sent 3x in a row -> RTC-AI calls it out, regardless of topic.
   const norm=lower.replace(/\s+/g,' ').trim();
-  Lotus.repeatStreak=(norm && norm===Lotus.lastMsgNorm) ? Lotus.repeatStreak+1 : 1;
-  Lotus.lastMsgNorm=norm;
-  if(Lotus.repeatStreak>=3){ addLotusMsg('hehehe','bot'); return; }
+  RtcAi.repeatStreak=(norm && norm===RtcAi.lastMsgNorm) ? RtcAi.repeatStreak+1 : 1;
+  RtcAi.lastMsgNorm=norm;
+  if(RtcAi.repeatStreak>=3){ addRtcAiMsg('hehehe','bot'); return; }
 
-  if(lotusIsDoItYourself(lower)){
-    Lotus.doItYourselfCount++;
-    addLotusMsg(Lotus.doItYourselfCount>=3 ? 'hehehe' : 'No. You do it yourself.','bot');
+  if(rtcAiIsDoItYourself(lower)){
+    RtcAi.doItYourselfCount++;
+    addRtcAiMsg(RtcAi.doItYourselfCount>=3 ? 'hehehe' : 'No. You do it yourself.','bot');
     return;
   }
-  if(lotusIsMayPasok(lower)){ addLotusMsg('SMTD','bot'); return; }
-  if(lotusIsSalaryTalk(lower)){
-    Lotus.salaryHitCount++;
-    addLotusMsg(Lotus.salaryHitCount>1 ? 'hehehe' : 'SMTD','bot');
+  if(rtcAiIsMayPasok(lower)){ addRtcAiMsg('SMTD','bot'); return; }
+  if(rtcAiIsSalaryTalk(lower)){
+    RtcAi.salaryHitCount++;
+    addRtcAiMsg(RtcAi.salaryHitCount>1 ? 'hehehe' : 'SMTD','bot');
     return;
   }
-  if(lotusIsGibberish(lower)){ addLotusMsg('SMTD','bot'); return; }
+  if(rtcAiIsGibberish(lower)){ addRtcAiMsg('SMTD','bot'); return; }
 
   // A file/topic prompt is waiting on this exact message — search with it
   // directly rather than running it through greeting/intent detection.
-  if(Lotus.pendingFileSearch){ lotusSearchKnowledge(text); return; }
+  if(RtcAi.pendingFileSearch){ rtcAiSearchKnowledge(text); return; }
 
-  const greeting=lotusParseGreeting(lower);
+  const greeting=rtcAiParseGreeting(lower);
   if(greeting){
-    const name=lotusGetUserName();
-    addLotusMsg(greeting+(name?', '+name:'')+'! What do you need — memos, a file, or booking a room?'+lotusQuickChipsHtml(),'bot');
+    const name=rtcAiGetUserName();
+    addRtcAiMsg(greeting+(name?', '+name:'')+'! What do you need — memos, a file, or booking a room?'+rtcAiQuickChipsHtml(),'bot');
     return;
   }
-  const smallTalk=lotusParseSmallTalk(lower);
-  if(smallTalk){ lotusSmallTalkReply(smallTalk); return; }
+  const smallTalk=rtcAiParseSmallTalk(lower);
+  if(smallTalk){ rtcAiSmallTalkReply(smallTalk); return; }
 
-  const intent=lotusParseIntent(lower);
+  const intent=rtcAiParseIntent(lower);
   if(intent==='memo'){
-    const mq=lotusExtractFileQuery(lower);
-    if(mq && mq.length>=2){ lotusSearchKnowledge(mq); return; }
-    lotusShowMemoGuide();
+    const mq=rtcAiExtractFileQuery(lower);
+    if(mq && mq.length>=2){ rtcAiSearchKnowledge(mq); return; }
+    rtcAiShowMemoGuide();
     return;
   }
-  if(intent==='mybookings'){ lotusShowMyBookings(); return; }
-  if(intent==='booking'){ lotusShowBookingGuide(); return; }
+  if(intent==='mybookings'){ rtcAiShowMyBookings(); return; }
+  if(intent==='booking'){ rtcAiShowBookingGuide(); return; }
   if(intent==='file'){
-    const q=lotusExtractFileQuery(lower);
-    if(q && q.length>=2){ lotusSearchKnowledge(q); return; }
-    lotusAskFileQuery();
+    const q=rtcAiExtractFileQuery(lower);
+    if(q && q.length>=2){ rtcAiSearchKnowledge(q); return; }
+    rtcAiAskFileQuery();
     return;
   }
-  if(lotusLooksLikeQuestion(lower)){
-    const q=lotusExtractFileQuery(lower);
-    if(q && q.length>=2){ lotusSearchKnowledge(q); return; }
+  if(rtcAiLooksLikeQuestion(lower)){
+    const q=rtcAiExtractFileQuery(lower);
+    if(q && q.length>=2){ rtcAiSearchKnowledge(q); return; }
   }
 
-  addLotusMsg('I can help you find memos/announcements, search for a file, or point you to Book a Room. What would you like?'+lotusQuickChipsHtml(),'bot');
+  addRtcAiMsg('I can help you find memos/announcements, search for a file, or point you to Book a Room. What would you like?'+rtcAiQuickChipsHtml(),'bot');
 }
 </script>
 
-<!-- ── Ask Lotus (rule-based portal guide, no API key / no AI model) ── -->
-<div class="lotus-wrap" id="lotusWrap">
-  <button class="lotus-bubble" id="lotusBubble" onclick="toggleLotus()" title="Ask Lotus">
-    <div class="lotus-logo" style="width:56px;height:56px">
-      <div class="lotus-logo-canvas" style="transform:scale(0.16)">
-        <div class="lotus-logo-ear left"></div><div class="lotus-logo-ear right"></div>
-        <div class="lotus-logo-face">
-          <div class="lotus-logo-eyebrows"><div class="lotus-logo-eyebrow left"></div><div class="lotus-logo-eyebrow right"></div></div>
-          <div class="lotus-logo-eyes"><div class="lotus-logo-eye left"><div class="lotus-logo-pupil"></div></div><div class="lotus-logo-eye right"><div class="lotus-logo-pupil"></div></div></div>
-          <div class="lotus-logo-nose"></div>
-          <div class="lotus-logo-mouth"><div class="lotus-logo-smirk"></div></div>
+<!-- ── Ask RTC-AI (rule-based portal guide, no API key / no AI model) ── -->
+<div class="rtc-ai-wrap" id="rtcAiWrap">
+  <button class="rtc-ai-bubble" id="rtcAiBubble" onclick="toggleRtcAi()" title="Ask RTC-AI">
+    <div class="rtc-ai-logo" style="width:56px;height:56px">
+      <div class="rtc-ai-logo-canvas" style="transform:scale(0.16)">
+        <div class="rtc-ai-logo-ear left"></div><div class="rtc-ai-logo-ear right"></div>
+        <div class="rtc-ai-logo-face">
+          <div class="rtc-ai-logo-eyebrows"><div class="rtc-ai-logo-eyebrow left"></div><div class="rtc-ai-logo-eyebrow right"></div></div>
+          <div class="rtc-ai-logo-eyes"><div class="rtc-ai-logo-eye left"><div class="rtc-ai-logo-pupil"></div></div><div class="rtc-ai-logo-eye right"><div class="rtc-ai-logo-pupil"></div></div></div>
+          <div class="rtc-ai-logo-nose"></div>
+          <div class="rtc-ai-logo-mouth"><div class="rtc-ai-logo-smirk"></div></div>
         </div>
-        <div class="lotus-logo-hair"></div>
+        <div class="rtc-ai-logo-hair"></div>
       </div>
     </div>
   </button>
-  <div class="lotus-panel" id="lotusPanel">
-    <div class="lotus-header">
-      <div class="lotus-header-title">
-        <div class="lotus-logo" style="width:24px;height:24px;box-shadow:none">
-          <div class="lotus-logo-canvas" style="transform:scale(0.068571)">
-            <div class="lotus-logo-ear left"></div><div class="lotus-logo-ear right"></div>
-            <div class="lotus-logo-face">
-              <div class="lotus-logo-eyebrows"><div class="lotus-logo-eyebrow left"></div><div class="lotus-logo-eyebrow right"></div></div>
-              <div class="lotus-logo-eyes"><div class="lotus-logo-eye left"><div class="lotus-logo-pupil"></div></div><div class="lotus-logo-eye right"><div class="lotus-logo-pupil"></div></div></div>
-              <div class="lotus-logo-nose"></div>
-              <div class="lotus-logo-mouth"><div class="lotus-logo-smirk"></div></div>
+  <div class="rtc-ai-panel" id="rtcAiPanel">
+    <div class="rtc-ai-header">
+      <div class="rtc-ai-header-title">
+        <div class="rtc-ai-logo" style="width:24px;height:24px;box-shadow:none">
+          <div class="rtc-ai-logo-canvas" style="transform:scale(0.068571)">
+            <div class="rtc-ai-logo-ear left"></div><div class="rtc-ai-logo-ear right"></div>
+            <div class="rtc-ai-logo-face">
+              <div class="rtc-ai-logo-eyebrows"><div class="rtc-ai-logo-eyebrow left"></div><div class="rtc-ai-logo-eyebrow right"></div></div>
+              <div class="rtc-ai-logo-eyes"><div class="rtc-ai-logo-eye left"><div class="rtc-ai-logo-pupil"></div></div><div class="rtc-ai-logo-eye right"><div class="rtc-ai-logo-pupil"></div></div></div>
+              <div class="rtc-ai-logo-nose"></div>
+              <div class="rtc-ai-logo-mouth"><div class="rtc-ai-logo-smirk"></div></div>
             </div>
-            <div class="lotus-logo-hair"></div>
+            <div class="rtc-ai-logo-hair"></div>
           </div>
         </div>
-        Ask Lotus
+        Ask RTC-AI
       </div>
-      <button class="lotus-close" onclick="toggleLotus(false)" title="Close">✕</button>
+      <button class="rtc-ai-close" onclick="toggleRtcAi(false)" title="Close">✕</button>
     </div>
-    <div class="lotus-messages" id="lotusMessages"></div>
-    <div class="lotus-input-row">
-      <input type="text" id="lotusInput" placeholder="e.g. Where do I find memos?" onkeydown="if(event.key==='Enter'){sendLotusMessage();}">
-      <button onclick="sendLotusMessage()" title="Send">➤</button>
+    <div class="rtc-ai-messages" id="rtcAiMessages"></div>
+    <div class="rtc-ai-input-row">
+      <input type="text" id="rtcAiInput" placeholder="e.g. Where do I find memos?" onkeydown="if(event.key==='Enter'){sendRtcAiMessage();}">
+      <button onclick="sendRtcAiMessage()" title="Send">➤</button>
     </div>
   </div>
 </div>
