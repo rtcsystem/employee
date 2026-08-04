@@ -607,6 +607,16 @@ body{font-family:'Inter',sans-serif;background:#f3f4f6;}
 </div>
 <div id="help-overlay" class="hidden fixed inset-0 bg-black/30 z-30" onclick="closeHelpPanel()"></div>
 
+<!-- SSO transition — shown immediately when "Book a Room" is clicked,
+     covers the brief token-generation gap before the browser navigates
+     to the Booking System (same-tab, so this page is torn down right
+     after — no need to hide it on success). -->
+<div id="sso-transition-overlay" class="hidden fixed inset-0 z-50 flex flex-col items-center justify-center" style="background:linear-gradient(135deg,#7b0019,#3d000d)">
+  <div class="spinner mx-auto" style="border-color:rgba(255,255,255,.2);border-top-color:#fff;width:40px;height:40px;"></div>
+  <p class="text-white text-sm font-semibold mt-4">Connecting to Booking System…</p>
+  <p class="text-white/50 text-xs mt-1">Signing you in, please wait</p>
+</div>
+
 <div id="toast-container"></div>
 
 <!-- ══════════════════════════════════════════════════════
@@ -1071,10 +1081,13 @@ function openBookingSystem(){
   const link=document.querySelector('[data-nav="book-room"]');
   const original=link?link.innerHTML:'';
   if(link) link.innerHTML='<span>⏳</span><span>Opening…</span>';
+  const overlay=document.getElementById('sso-transition-overlay');
+  if(overlay) overlay.classList.remove('hidden');
 
   api('generateBookingSSOToken', {email:APP.user.email, role:APP.user.role}, res=>{
       if(!res || !res.success){
         if(link) link.innerHTML=original;
+        if(overlay) overlay.classList.add('hidden');
         toast((res&&res.message)||'Could not open Booking System.','error');
         return;
       }
@@ -1082,6 +1095,7 @@ function openBookingSystem(){
       window.location.href=url;
     }, err=>{
       if(link) link.innerHTML=original;
+      if(overlay) overlay.classList.add('hidden');
       toast('Could not open Booking System: '+err.message,'error');
     });
 }
