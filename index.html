@@ -840,6 +840,7 @@ function showConfirm(msg, onYes, yesLabel) {
 // 👁  FILE PREVIEW MODAL  (Google Drive embed)
 // ════════════════════════════════════════════════════════════
 function previewFile(fileId, fileName) {
+  var viewUrl = 'https://drive.google.com/file/d/' + fileId + '/view';
   var overlay = document.createElement('div');
   overlay.id = 'preview-overlay';
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:8500;display:flex;flex-direction:column;align-items:center;justify-content:center;';
@@ -847,13 +848,45 @@ function previewFile(fileId, fileName) {
     + '<div style="display:flex;align-items:center;justify-content:space-between;padding:0 4px;">'
     + '<span style="color:#fff;font-size:13px;font-weight:600;max-width:65%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(fileName) + '</span>'
     + '<div style="display:flex;gap:8px;align-items:center;">'
-    + '<a href="https://drive.google.com/file/d/' + fileId + '/view" target="_blank" style="color:#fca5a5;font-size:12px;font-weight:700;text-decoration:none;padding:6px 14px;border:1px solid rgba(255,255,255,.2);border-radius:8px;background:rgba(255,255,255,.08)">↗ Full View</a>'
+    + '<a href="' + viewUrl + '" target="_blank" style="color:#fca5a5;font-size:12px;font-weight:700;text-decoration:none;padding:6px 14px;border:1px solid rgba(255,255,255,.2);border-radius:8px;background:rgba(255,255,255,.08)">↗ Full View</a>'
     + '<button onclick="document.getElementById(\'preview-overlay\').remove()" style="color:#fff;font-size:20px;background:rgba(255,255,255,.1);border:none;cursor:pointer;padding:3px 12px;border-radius:8px;line-height:1;">✕</button>'
     + '</div></div>'
-    + '<iframe src="https://drive.google.com/file/d/' + fileId + '/preview" style="width:100%;height:80vh;border:none;border-radius:12px;background:#fff;" allowfullscreen></iframe>'
+    + '<div id="preview-frame-wrap" style="width:100%;height:80vh;border-radius:12px;background:#fff;position:relative;overflow:hidden;">'
+    + '<div id="preview-loading" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:#fff;">'
+    + '<div class="spinner"></div><p style="font-size:12px;color:#9ca3af;">Loading preview…</p>'
+    + '</div>'
+    + '<iframe id="preview-frame" src="https://drive.google.com/file/d/' + fileId + '/preview" style="width:100%;height:100%;border:none;" allowfullscreen></iframe>'
+    + '<div id="preview-trouble-hint" class="hidden" style="position:absolute;left:0;right:0;bottom:0;padding:8px 12px;background:rgba(17,24,39,.92);display:flex;align-items:center;justify-content:center;gap:10px;">'
+    + '<span style="color:#d1d5db;font-size:11px;">Having trouble loading?</span>'
+    + '<a href="' + viewUrl + '" target="_blank" style="color:#fca5a5;font-size:11px;font-weight:700;text-decoration:none;">↗ Open in new tab</a>'
+    + '</div>'
+    + '</div>'
     + '</div>';
   document.body.appendChild(overlay);
   overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
+
+  // Drive's embedded preview occasionally fails to load (network
+  // hiccup, blocked by an extension, transient Drive issue) even
+  // though the file itself is fine and "Full View" (new tab) works.
+  // Cross-origin iframes can't be inspected from here to confirm a
+  // real failure, so instead of guessing wrong and hiding a preview
+  // that's just loading slowly, we clear the spinner on load and
+  // always surface a small "open in new tab" hint after a few seconds
+  // as a visible escape hatch — non-destructive, doesn't remove the
+  // iframe in case it does still come through.
+  var frameEl = document.getElementById('preview-frame');
+  if (frameEl) {
+    frameEl.onload = function(){
+      var loadingEl = document.getElementById('preview-loading');
+      if (loadingEl) loadingEl.remove();
+    };
+  }
+  setTimeout(function(){
+    var loadingEl = document.getElementById('preview-loading');
+    if (loadingEl) loadingEl.remove();
+    var hint = document.getElementById('preview-trouble-hint');
+    if (hint) hint.classList.remove('hidden');
+  }, 4000);
 }
 
 // ════════════════════════════════════════════════════════════
