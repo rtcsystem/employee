@@ -657,6 +657,24 @@ function clearSession(){
 // updating here too, or every api() call below will fail.
 const EMPLOYEE_PORTAL_API_URL = 'https://script.google.com/macros/s/AKfycbzYywqIGLWOey7hJVlwk_5XARSb9mNaUKScok7glpza7i2O78CnmT7JtKcCT-zbAuZ8/exec';
 
+// ── Stale-while-revalidate cache (localStorage) ──────────────────
+// Used by Feed/Folders/Documents: show whatever was last fetched
+// instantly (no loading wait) while a fresh fetch runs quietly in the
+// background and re-renders once it lands. Every create/delete/like/
+// comment action already triggers a full reload afterward, which
+// updates the cache naturally — no separate invalidation needed.
+function cacheGet(key){
+  try {
+    const raw=localStorage.getItem('rtcCache_'+key);
+    if(!raw) return null;
+    return JSON.parse(raw);
+  } catch(e){ return null; }
+}
+function cacheSet(key,data){
+  try { localStorage.setItem('rtcCache_'+key, JSON.stringify(data)); }
+  catch(e){ /* storage full/blocked — cache is best-effort, ignore */ }
+}
+
 function api(action, params, onSuccess, onError) {
   const body = Object.assign({ action: action }, params || {});
   fetch(EMPLOYEE_PORTAL_API_URL, {
@@ -1488,13 +1506,24 @@ function doCreatePost(e){
 }
 
 function loadFeed(){
-  setLoading(true);
-  api('getPosts', {limit:50,userEmail:APP.user.email}, posts=>{
+  const cached=cacheGet('feed');
+  if(cached){
+    APP.posts=cached.posts||[];
+    APP.postAvatars=cached.avatars||{};
+    renderFeedSidebar(APP.posts);
+    renderPostCards(filterPostsByTab(APP.posts,APP.feedFilter));
+  } else {
+    setLoading(true);
+  }
+  api('getPosts', {limit:50,userEmail:APP.user.email}, res=>{
     setLoading(false);
+    const posts=res.posts||[];
     APP.posts=posts;
+    APP.postAvatars=res.avatars||{};
+    cacheSet('feed', {posts:posts,avatars:APP.postAvatars});
     renderFeedSidebar(posts);
     renderPostCards(filterPostsByTab(posts,APP.feedFilter));
-  }, err=>{setLoading(false);toast('Feed error: '+err.message,'error');});
+  }, err=>{setLoading(false);if(!cached)toast('Feed error: '+err.message,'error');});
 }
 
 function renderPostCards(posts){
@@ -1510,6 +1539,7 @@ function renderPostCards(posts){
 
 function buildPostCard(p,isAdmin){
   const cfg=POST_TYPES[p.type]||POST_TYPES['Announcement'];
+  const authorAvatar=(APP.postAvatars&&APP.postAvatars[(p.authorEmail||'').toLowerCase()])||'';
   const pinHtml=p.isPinned?`<span class="text-xs font-semibold text-maroon-700 bg-maroon-50 px-2 py-0.5 rounded-full flex items-center gap-1">📌 Pinned</span>`:'';
   const eventHtml=(p.type==='Event'&&(p.eventDate||p.eventLoc))?`
     <div class="mt-2.5 bg-blue-50 rounded-xl p-3 flex flex-wrap gap-4">
@@ -1530,7 +1560,7 @@ function buildPostCard(p,isAdmin){
         <div class="flex items-start gap-3">
           <button onclick="showUserProfile('${p.authorEmail}')" class="shrink-0 focus:outline-none">
             <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white overflow-hidden hover:opacity-80 transition" style="background:${cfg.color}">
-              ${p.authorAvatar?`<img src="data:image/jpeg;base64,${p.authorAvatar}" class="w-full h-full object-cover"/>`:(p.authorName||'?').slice(0,2).toUpperCase()}
+              ${authorAvatar?`<img src="data:image/jpeg;base64,${authorAvatar}" class="w-full h-full object-cover"/>`:(p.authorName||'?').slice(0,2).toUpperCase()}
             </div>
           </button>
           <div class="flex-1 min-w-0">
@@ -1597,11 +1627,17 @@ function toggleComments(postId){
   s.classList.add('open');loadComments(postId);
 }
 function loadComments(postId){
-  api('getComments', {postId:postId}, c=>renderComments(postId,c), ()=>{const el=document.getElementById('comments-list-'+postId);if(el)el.innerHTML='<p class="text-xs text-red-400 text-center">Failed to load.</p>';});
+  const cached=cacheGet('comments_'+postId);
+  if(cached) renderComments(postId,cached.comments,cached.avatars);
+  api('getComments', {postId:postId}, res=>{
+      cacheSet('comments_'+postId, res);
+      renderComments(postId,res.comments,res.avatars);
+    }, ()=>{if(!cached){const el=document.getElementById('comments-list-'+postId);if(el)el.innerHTML='<p class="text-xs text-red-400 text-center">Failed to load.</p>';}});
 }
-function renderComments(postId,comments){
+function renderComments(postId,comments,avatars){
   const el=document.getElementById('comments-list-'+postId);
   if(!el)return;
+  avatars=avatars||{};
   const isAdmin=APP.user.role==='Admin';
   if(!comments.length){el.innerHTML='<p class="text-xs text-gray-400 text-center py-1">No comments yet. Be the first!</p>';return;}
   const topLevel=comments.filter(c=>!c.parentCommentId);
@@ -1610,7 +1646,8 @@ function renderComments(postId,comments){
   function buildC(c,isReply){
     const reps=replyMap[c.commentId]||[];
     const myInitial=(c.authorName||'?').slice(0,1);
-    const avatarInner=c.authorAvatar?'<img src="data:image/jpeg;base64,'+c.authorAvatar+'" class="w-full h-full object-cover"/>':myInitial;
+    const cAvatar=avatars[(c.authorEmail||'').toLowerCase()]||'';
+    const avatarInner=cAvatar?'<img src="data:image/jpeg;base64,'+cAvatar+'" class="w-full h-full object-cover"/>':myInitial;
     return '<div class="flex gap-2 items-start group" id="comment-'+c.commentId+'">'
       +'<button onclick="showUserProfile(\''+c.authorEmail+'\')" class="shrink-0 focus:outline-none">'
       +'<div class="w-6 h-6 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-xs font-bold hover:bg-maroon-100 hover:text-maroon-700 transition overflow-hidden">'+avatarInner+'</div>'
@@ -1754,31 +1791,37 @@ function renderFolders(){
     </div>`;
   loadFoldersList();
 }
+function renderFoldersTable(folders){
+  APP.folders=folders;
+  const el=document.getElementById('folders-list');if(!el)return;
+  const isAdmin=APP.user.role==='Admin';
+  if(!folders.length){el.innerHTML='<p class="text-sm text-gray-400 text-center py-6">No folders yet.</p>';return;}
+  var rows=folders.map(function(f){
+    return '<tr class="border-b border-gray-50 hover:bg-maroon-50/30 cursor-pointer group">'
+      +'<td class="py-2.5 pr-4 font-semibold text-gray-800" onclick="openFolderContents(\''+esc(f.folderId)+'\',\''+esc(f.folderName)+'\')">'
+      +'<span class="flex items-center gap-2">📁 '+esc(f.folderName)+' <span class="text-xs text-maroon-400 opacity-0 group-hover:opacity-100 transition font-normal">👉 Open</span></span>'
+      +'</td>'
+      +'<td class="py-2.5 pr-4 text-xs text-gray-500" onclick="openFolderContents(\''+esc(f.folderId)+'\',\''+esc(f.folderName)+'\')">'+esc(f.createdBy)+'</td>'
+      +'<td class="py-2.5 pr-4 text-xs text-gray-400" onclick="openFolderContents(\''+esc(f.folderId)+'\',\''+esc(f.folderName)+'\')">'+fmtShort(f.createdAt)+'</td>'
+      +(isAdmin?'<td class="py-2.5 text-right">'
+        +'<button onclick="event.stopPropagation();openFolderUpload(\''+esc(f.folderId)+'\',\''+esc(f.folderName)+'\')" class="text-xs text-maroon-600 hover:text-maroon-800 font-semibold mr-3">📤 Upload</button>'
+        +'<button onclick="event.stopPropagation();doDeleteFolder(\''+esc(f.folderId)+'\',\''+esc(f.folderName)+'\')" class="text-xs text-red-400 hover:text-red-600 font-medium">🗑 Delete</button>'
+        +'</td>':'')
+      +'</tr>';
+  }).join('');
+  el.innerHTML='<div class="overflow-x-auto"><table class="w-full text-sm">'
+    +'<thead><tr class="text-xs text-gray-400 uppercase tracking-wide border-b">'
+    +'<th class="pb-2 pr-4 text-left">Name</th><th class="pb-2 pr-4 text-left">Created By</th><th class="pb-2 pr-4 text-left">Date</th>'
+    +(isAdmin?'<th class="pb-2 text-right">Actions</th>':'')
+    +'</tr></thead><tbody>'+rows+'</tbody></table></div>';
+}
 function loadFoldersList(){
+  const cached=cacheGet('folders');
+  if(cached) renderFoldersTable(cached);
   api('getFolders', {}, folders=>{
-      APP.folders=folders;
-      const el=document.getElementById('folders-list');if(!el)return;
-      const isAdmin=APP.user.role==='Admin';
-      if(!folders.length){el.innerHTML='<p class="text-sm text-gray-400 text-center py-6">No folders yet.</p>';return;}
-      var rows=folders.map(function(f){
-        return '<tr class="border-b border-gray-50 hover:bg-maroon-50/30 cursor-pointer group">'
-          +'<td class="py-2.5 pr-4 font-semibold text-gray-800" onclick="openFolderContents(\''+esc(f.folderId)+'\',\''+esc(f.folderName)+'\')">'
-          +'<span class="flex items-center gap-2">📁 '+esc(f.folderName)+' <span class="text-xs text-maroon-400 opacity-0 group-hover:opacity-100 transition font-normal">👉 Open</span></span>'
-          +'</td>'
-          +'<td class="py-2.5 pr-4 text-xs text-gray-500" onclick="openFolderContents(\''+esc(f.folderId)+'\',\''+esc(f.folderName)+'\')">'+esc(f.createdBy)+'</td>'
-          +'<td class="py-2.5 pr-4 text-xs text-gray-400" onclick="openFolderContents(\''+esc(f.folderId)+'\',\''+esc(f.folderName)+'\')">'+fmtShort(f.createdAt)+'</td>'
-          +(isAdmin?'<td class="py-2.5 text-right">'
-            +'<button onclick="event.stopPropagation();openFolderUpload(\''+esc(f.folderId)+'\',\''+esc(f.folderName)+'\')" class="text-xs text-maroon-600 hover:text-maroon-800 font-semibold mr-3">📤 Upload</button>'
-            +'<button onclick="event.stopPropagation();doDeleteFolder(\''+esc(f.folderId)+'\',\''+esc(f.folderName)+'\')" class="text-xs text-red-400 hover:text-red-600 font-medium">🗑 Delete</button>'
-            +'</td>':'')
-          +'</tr>';
-      }).join('');
-      el.innerHTML='<div class="overflow-x-auto"><table class="w-full text-sm">'
-        +'<thead><tr class="text-xs text-gray-400 uppercase tracking-wide border-b">'
-        +'<th class="pb-2 pr-4 text-left">Name</th><th class="pb-2 pr-4 text-left">Created By</th><th class="pb-2 pr-4 text-left">Date</th>'
-        +(isAdmin?'<th class="pb-2 text-right">Actions</th>':'')
-        +'</tr></thead><tbody>'+rows+'</tbody></table></div>';
-    }, err=>toast(err.message,'error'));
+      cacheSet('folders', folders);
+      renderFoldersTable(folders);
+    }, err=>{if(!cached)toast(err.message,'error');});
 }
 function doCreateFolder(){
   const input=document.getElementById('folder-name-input');const name=input.value.trim();
@@ -2081,13 +2124,20 @@ function renderDocuments(){
       <div class="flex items-center px-1"><span class="text-xs text-gray-400" id="docs-count">Loading…</span></div>
       <div id="docs-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">${shimmerCards(8)}</div>
     </div>`;
-  setLoading(true);
+  const applyFiles=files=>{
+    APP.files=files;
+    const ff=document.getElementById('folder-filter');
+    if(ff){const flds=[...new Map(files.map(f=>[f.folderId,f])).values()];ff.innerHTML='<option value="">All Folders</option>'+flds.map(f=>`<option value="${esc(f.folderId)}">${esc(f.folderName)}</option>`).join('');}
+    renderDocCards(files,isAdmin);
+  };
+  const cached=cacheGet('files');
+  if(cached) applyFiles(cached);
+  else setLoading(true);
   api('getFiles', {}, files=>{
-      setLoading(false);APP.files=files;
-      const ff=document.getElementById('folder-filter');
-      if(ff){const flds=[...new Map(files.map(f=>[f.folderId,f])).values()];ff.innerHTML='<option value="">All Folders</option>'+flds.map(f=>`<option value="${esc(f.folderId)}">${esc(f.folderName)}</option>`).join('');}
-      renderDocCards(files,isAdmin);
-    }, err=>{setLoading(false);toast(err.message,'error');});
+      setLoading(false);
+      cacheSet('files', files);
+      applyFiles(files);
+    }, err=>{setLoading(false);if(!cached)toast(err.message,'error');});
 }
 function setDocView(m){_docView=m;document.getElementById('view-grid').className='p-2 rounded-lg text-xs '+(m==='grid'?'bg-maroon-700 text-white':'bg-gray-100 text-gray-600');document.getElementById('view-list').className='p-2 rounded-lg text-xs '+(m==='list'?'bg-maroon-700 text-white':'bg-gray-100 text-gray-600');filterDocuments(document.getElementById('doc-search')?.value||'');}
 function filterDocuments(q){const fId=document.getElementById('folder-filter')?.value||'';const isAdmin=APP.user.role==='Admin';let files=APP.files;if(fId)files=files.filter(f=>f.folderId===fId);if(q.trim())files=files.filter(f=>f.fileName.toLowerCase().includes(q.toLowerCase())||f.folderName.toLowerCase().includes(q.toLowerCase()));renderDocCards(files,isAdmin);}
