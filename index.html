@@ -863,6 +863,35 @@ function showConfirm(msg, onYes, yesLabel) {
   overlay.onclick = function(e){ if(e.target===overlay) close(); };
 }
 
+// Styled replacement for the old native alert() shown after promoting
+// an Employee to Admin — same visual language as showConfirm() above.
+// Includes a one-click copy so the temp password doesn't have to be
+// retyped by hand when handing it off.
+function showTempPasswordModal(email, tempPassword){
+  var overlay = document.createElement('div');
+  overlay.id = 'temppw-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9000;display:flex;align-items:center;justify-content:center;';
+  overlay.innerHTML = '<div style="background:#fff;border-radius:16px;padding:24px 28px;max-width:380px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.25);animation:slideUp .18s ease;">'
+    + '<div style="font-size:28px;text-align:center;margin-bottom:12px;">🔑</div>'
+    + '<p style="font-size:14px;color:#111827;text-align:center;font-weight:700;margin-bottom:6px;">Temporary Password</p>'
+    + '<p style="font-size:12.5px;color:#6b7280;text-align:center;margin-bottom:16px;line-height:1.5;">For <b>'+esc(email)+'</b>. Share this with them directly — they cannot use "Forgot Password" to set it themselves yet.</p>'
+    + '<div style="display:flex;align-items:center;gap:8px;background:#f9fafb;border:1.5px dashed #d1d5db;border-radius:10px;padding:10px 14px;margin-bottom:20px;">'
+    + '<code id="temppw-value" style="flex:1;font-size:15px;font-weight:700;color:#7b0019;letter-spacing:.5px;">'+esc(tempPassword)+'</code>'
+    + '<button id="temppw-copy" title="Copy" style="border:none;background:none;cursor:pointer;font-size:16px;color:#6b7280;">📋</button>'
+    + '</div>'
+    + '<button id="temppw-close" style="width:100%;padding:10px;border:none;border-radius:10px;font-size:13px;font-weight:700;color:#fff;background:#7b0019;cursor:pointer;">Got it</button>'
+    + '</div>';
+  document.body.appendChild(overlay);
+  function close(){ overlay.remove(); }
+  overlay.querySelector('#temppw-close').onclick = close;
+  overlay.querySelector('#temppw-copy').onclick = function(){
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(tempPassword).then(function(){ toast('Copied to clipboard.','success'); });
+    }
+  };
+  overlay.onclick = function(e){ if(e.target===overlay) close(); };
+}
+
 // ════════════════════════════════════════════════════════════
 // 👁  FILE PREVIEW MODAL  (Google Drive embed)
 // ════════════════════════════════════════════════════════════
@@ -2364,7 +2393,7 @@ function doUpdateRole(email,role){
       setLoading(false);
       toast(res.message,res.success?'success':'error');
       if(res.success && res.tempPassword){
-        alert('Temporary password for '+email+': '+res.tempPassword+'\n\nShare this with them directly — they cannot use "Forgot Password" to set it themselves yet.');
+        showTempPasswordModal(email, res.tempPassword);
       }
       if(res.success) renderUsers();
     }, err=>{setLoading(false);toast(err.message,'error');});
