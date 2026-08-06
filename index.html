@@ -161,6 +161,33 @@ body{font-family:'Inter',sans-serif;background:#f3f4f6;}
   .rtc-ai-wrap{right:14px;bottom:14px;}
   .rtc-ai-panel{width:calc(100vw - 28px);height:68vh;bottom:66px;}
 }
+
+/* ===== Custom Arrow Cursor (maroon dot + ring) — mouse/trackpad only ===== */
+@media (pointer:fine){
+  html.rtc-custom-cursor body { cursor:none; }
+  html.rtc-custom-cursor a, html.rtc-custom-cursor button, html.rtc-custom-cursor [role="button"],
+  html.rtc-custom-cursor .btn, html.rtc-custom-cursor label, html.rtc-custom-cursor summary,
+  html.rtc-custom-cursor select, html.rtc-custom-cursor [onclick] { cursor:none; }
+  html.rtc-custom-cursor input[type="text"], html.rtc-custom-cursor input[type="email"],
+  html.rtc-custom-cursor input[type="password"], html.rtc-custom-cursor input[type="search"],
+  html.rtc-custom-cursor input[type="tel"], html.rtc-custom-cursor input[type="url"],
+  html.rtc-custom-cursor input[type="number"], html.rtc-custom-cursor input:not([type]),
+  html.rtc-custom-cursor textarea, html.rtc-custom-cursor [contenteditable="true"] { cursor:text; }
+}
+@media (pointer:coarse){
+  .rtc-cursor-dot, .rtc-cursor-ring { display:none !important; }
+}
+.rtc-cursor-dot, .rtc-cursor-ring{
+  position:fixed; top:0; left:0; pointer-events:none; z-index:99999;
+  border-radius:50%; transform:translate(-50%,-50%); opacity:0; transition:opacity .2s ease;
+}
+.rtc-cursor-dot{ width:6px; height:6px; background:#7b0019; box-shadow:0 0 0 1.5px #fff,0 0 2px rgba(0,0,0,.35); }
+.rtc-cursor-ring{ width:30px; height:30px; border:1.5px solid rgba(123,0,25,.55); box-shadow:0 0 0 1.5px #fff,0 0 2px rgba(0,0,0,.25);
+  transition:width .15s ease,height .15s ease,border-color .15s ease,opacity .2s ease; }
+html.rtc-cursor-ready .rtc-cursor-dot, html.rtc-cursor-ready .rtc-cursor-ring{ opacity:1; }
+body.rtc-cursor-hover .rtc-cursor-ring{ width:46px; height:46px; border-color:rgba(123,0,25,.85); }
+body.rtc-cursor-active .rtc-cursor-ring{ width:22px; height:22px; }
+body.rtc-cursor-active .rtc-cursor-dot{ width:8px; height:8px; }
 </style>
 </head>
 <body class="min-h-screen">
@@ -2303,15 +2330,20 @@ function renderUsers(){
           <td class="py-2.5 pr-4 text-xs text-gray-500">${esc(u.position||u.department||'—')}</td>
           <td class="py-2.5 pr-4">${u.status==='pending'
             ?'<span class="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">⏳ Pending</span>'
-            :`<span class="text-xs font-bold px-2 py-0.5 rounded-full ${u.superAdmin?'bg-amber-500 text-white':(u.role==='Admin'?'bg-maroon-700 text-white':'bg-gray-200 text-gray-600')}">${u.superAdmin?'Super Admin':esc(u.role)}</span>`}</td>
+            :`<span class="text-xs font-bold px-2 py-0.5 rounded-full ${u.superAdmin?'bg-amber-500 text-white':(u.role==='Admin'?'bg-maroon-700 text-white':'bg-gray-200 text-gray-600')}">${u.superAdmin?'Super Admin':esc(u.role)}</span>${(u.role==='Admin')?`<div class="mt-1"><span class="text-[10px] font-semibold px-1.5 py-0.5 rounded ${u.scope==='All'?'bg-gray-100 text-gray-500':'bg-blue-50 text-blue-700'}">${esc(u.scope||'All')}</span></div>`:''}`}</td>
           <td class="py-2.5 text-right">
             ${u.status==='pending'
               ?`<button onclick="doApproveUser('${esc(u.email)}')" class="text-xs px-3 py-1.5 rounded-lg bg-green-600 text-white font-bold hover:bg-green-700 transition">✅ Approve</button>`
-              :(u.email===APP.user.email?'<span class="text-xs text-gray-300 italic">You</span>':(APP.user.superAdmin?`<div class="flex items-center justify-end gap-2">
+              :(u.email===APP.user.email?'<span class="text-xs text-gray-300 italic">You</span>':(APP.user.superAdmin?`<div class="flex items-center justify-end gap-2 flex-wrap">
               <select onchange="doUpdateRole('${esc(u.email)}',this.value)" class="text-xs px-2 py-1.5 border border-gray-200 rounded-lg bg-white text-gray-600 focus:outline-none">
                 <option value="Employee" ${u.role==='Employee'?'selected':''}>Employee</option>
                 <option value="Admin" ${u.role==='Admin'?'selected':''}>Admin</option>
               </select>
+              ${(u.role==='Admin' && !u.superAdmin)?`<select onchange="doUpdateScope('${esc(u.email)}',this.value)" title="Which system(s) this admin can administer" class="text-xs px-2 py-1.5 border border-gray-200 rounded-lg bg-white text-gray-600 focus:outline-none">
+                <option value="All" ${(u.scope||'All')==='All'?'selected':''}>All</option>
+                <option value="Booking System only" ${u.scope==='Booking System only'?'selected':''}>Booking only</option>
+                <option value="Employee Portal only" ${u.scope==='Employee Portal only'?'selected':''}>Portal only</option>
+              </select>`:''}
               <button onclick="doDeleteUser('${esc(u.email)}')" title="Delete user" class="text-xs px-2 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50">🗑</button>
             </div>`:'<span class="text-xs text-gray-300">—</span>'))}
           </td>
@@ -2334,6 +2366,14 @@ function doUpdateRole(email,role){
       if(res.success && res.tempPassword){
         alert('Temporary password for '+email+': '+res.tempPassword+'\n\nShare this with them directly — they cannot use "Forgot Password" to set it themselves yet.');
       }
+      if(res.success) renderUsers();
+    }, err=>{setLoading(false);toast(err.message,'error');});
+}
+function doUpdateScope(email,scope){
+  setLoading(true);
+  api('updateAdminScope', {targetEmail:email,newScope:scope,adminEmail:APP.user.email}, res=>{
+      setLoading(false);
+      toast(res.message,res.success?'success':'error');
       if(res.success) renderUsers();
     }, err=>{setLoading(false);toast(err.message,'error');});
 }
@@ -2420,7 +2460,7 @@ function rtcAiQuickChipsHtml(){
 function rtcAiMyBookingLineHtml(b){
   return '<div style="border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;margin-top:6px;font-size:12.5px;line-height:1.5">'
     +'<div><strong>'+esc(b.title||'Booking')+'</strong></div>'
-    +'<div>'+(b.room==='Showroom'?'🏢 ':'🏛️ ')+esc(b.room||'')+' · 📅 '+esc(b.bookingDate||'')+' · 🕒 '+esc(b.timeRange||'')+'</div>'
+    +'<div>'+((b.room||'').indexOf('Showroom')>-1?'🏢 ':'🏛️ ')+esc(b.room||'')+' · 📅 '+esc(b.bookingDate||'')+' · 🕒 '+esc(b.timeRange||'')+'</div>'
     +(b.isCc ? '<div style="color:#7b0019;font-weight:600">CC\'d</div>' : '')
     +'</div>';
 }
@@ -2455,7 +2495,7 @@ function rtcAiShowMemoGuide(){
     +'<div class="rtc-ai-quick-replies"><button class="rtc-ai-chip" onclick="closeSidebar();navigateTo(\'feed\');addRtcAiMsg(\'Taking you to the Feed…\',\'user\')">Go to Feed</button></div>','bot');
 }
 function rtcAiShowBookingGuide(){
-  addRtcAiMsg('🚪 If you want to check availability or book the Showroom, Masflex Room, or Cascade Room, tap the <strong>Book a Room</strong> button below — it\'ll take you straight into the Booking System, already signed in. I can help you check real-time room availability there too!'
+  addRtcAiMsg('🚪 If you want to check availability or book the Main Showroom, Corporate Showroom, Masflex Room, or Cascade Room, tap the <strong>Book a Room</strong> button below — it\'ll take you straight into the Booking System, already signed in. I can help you check real-time room availability there too!'
     +'<div class="rtc-ai-quick-replies"><button class="rtc-ai-chip" onclick="openBookingSystem()">Book a Room</button></div>','bot');
 }
 function rtcAiAskFileQuery(){
@@ -2562,7 +2602,7 @@ function rtcAiSmallTalkReply(kind){
   } else if(kind==='bye'){
     addRtcAiMsg('Bye'+(name?', '+name:'')+'! I\'ll be here if you need me. 👋','bot');
   } else if(kind==='help'){
-    addRtcAiMsg('I\'m <strong>RTC-AI</strong>, the RTC AI Assistant! I don\'t use AI models — I just guide you around the Portal: memos/announcements are in the Feed, I can search your actual files under Folders/Documents by name, and I can point you to Book a Room when you need the Showroom or a conference room.'+rtcAiQuickChipsHtml(),'bot');
+    addRtcAiMsg('I\'m <strong>RTC-AI</strong>, the RTC AI Assistant! I don\'t use AI models — I just guide you around the Portal: memos/announcements are in the Feed, I can search your actual files under Folders/Documents by name, and I can point you to Book a Room when you need the Main Showroom, Corporate Showroom, or a conference room.'+rtcAiQuickChipsHtml(),'bot');
   } else if(kind==='ok'){
     addRtcAiMsg('👍 Let me know if you need anything else.'+rtcAiQuickChipsHtml(),'bot');
   }
@@ -2723,5 +2763,38 @@ function sendRtcAiMessage(){
   </div>
 </div>
 
+
+<script>
+(function(){
+  if (!(window.matchMedia && window.matchMedia('(pointer:fine)').matches)) return;
+  var dot=document.createElement('div'); dot.className='rtc-cursor-dot';
+  var ring=document.createElement('div'); ring.className='rtc-cursor-ring';
+  document.body.appendChild(dot); document.body.appendChild(ring);
+  document.documentElement.classList.add('rtc-custom-cursor');
+  var rx=0, ry=0, dx=0, dy=0, ticking=false, started=false;
+  function loop(){
+    dx += (rx-dx)*0.35; dy += (ry-dy)*0.35;
+    ring.style.left=dx+'px'; ring.style.top=dy+'px';
+    ticking=false;
+  }
+  document.addEventListener('mousemove', function(e){
+    rx=e.clientX; ry=e.clientY;
+    dot.style.left=rx+'px'; dot.style.top=ry+'px';
+    if(!started){ started=true; dx=rx; dy=ry; document.documentElement.classList.add('rtc-cursor-ready'); }
+    if(!ticking){ ticking=true; requestAnimationFrame(loop); }
+  }, {passive:true});
+  document.addEventListener('mousedown', function(){ document.body.classList.add('rtc-cursor-active'); });
+  document.addEventListener('mouseup', function(){ document.body.classList.remove('rtc-cursor-active'); });
+  var hoverSel='a, button, [role="button"], .btn, input, select, label, summary, [onclick], [tabindex]:not([tabindex="-1"])';
+  document.addEventListener('mouseover', function(e){
+    if(e.target && e.target.closest && e.target.closest(hoverSel)) document.body.classList.add('rtc-cursor-hover');
+  }, true);
+  document.addEventListener('mouseout', function(e){
+    if(e.target && e.target.closest && e.target.closest(hoverSel)) document.body.classList.remove('rtc-cursor-hover');
+  }, true);
+  document.addEventListener('mouseleave', function(){ document.documentElement.classList.remove('rtc-cursor-ready'); });
+  document.addEventListener('mouseenter', function(){ if(started) document.documentElement.classList.add('rtc-cursor-ready'); });
+})();
+</script>
 </body>
 </html>
