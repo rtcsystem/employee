@@ -4,6 +4,12 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>RTC Employee Portal</title>
+<!-- Warms up the connection to the Booking System ahead of time (DNS +
+     TLS handshake) so clicking "Book a Room" doesn't pay for that setup
+     cost at the moment of navigation — part of the same SSO speed-up as
+     the token prefetch in the script below. -->
+<link rel="preconnect" href="https://rameshtrading.com.ph">
+<link rel="preconnect" href="https://script.google.com">
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
 <script>
@@ -188,6 +194,54 @@ html.rtc-cursor-ready .rtc-cursor-dot, html.rtc-cursor-ready .rtc-cursor-ring{ o
 body.rtc-cursor-hover .rtc-cursor-ring{ width:46px; height:46px; border-color:rgba(123,0,25,.85); }
 body.rtc-cursor-active .rtc-cursor-ring{ width:22px; height:22px; }
 body.rtc-cursor-active .rtc-cursor-dot{ width:8px; height:8px; }
+
+/* ── Refresh Loader (robot mascot console) ───────────────────
+   Shared by the "↻ Refresh" buttons on Folders, an open folder's
+   file list, and Documents. Purely a transient loading indicator —
+   tied to when the real data actually finishes loading, not a fixed
+   fake duration. Re-tapping while it's already running just shakes
+   the console instead of firing a second request. */
+#rtc-refresh-overlay{ position:fixed; inset:0; background:rgba(11,2,4,.55); z-index:9500;
+  display:none; align-items:center; justify-content:center; backdrop-filter:blur(2px); }
+#rtc-refresh-overlay.show{ display:flex; }
+.rtc-refresh-wrap{ opacity:0; visibility:hidden; transform:scale(.95);
+  transition:opacity .35s cubic-bezier(.4,0,.2,1), visibility .35s cubic-bezier(.4,0,.2,1), transform .35s cubic-bezier(.4,0,.2,1); }
+#rtc-refresh-overlay.show .rtc-refresh-wrap{ opacity:1; visibility:visible; transform:scale(1); }
+.rtc-refresh-deck{ width:100%; max-width:280px; padding:1.6rem 1.4rem; background:#1a0209;
+  border:1px solid rgba(255,255,255,.08); border-radius:20px; box-shadow:0 25px 60px -15px rgba(0,0,0,.6); text-align:center; font-family:inherit; }
+.rtc-refresh-deck.shake{ animation:rtcRefreshShake .4s cubic-bezier(.36,.07,.19,.97) both; border-color:#eab308; }
+.rtc-refresh-readout{ background:#0b0104; border-left:3px solid #eab308; color:#ffd76b; padding:.6rem .75rem;
+  border-radius:6px; font-size:.78rem; font-weight:700; line-height:1.4; margin-bottom:1.25rem; min-height:38px;
+  display:flex; align-items:center; justify-content:center; transition:color .2s,border-color .2s; }
+.rtc-refresh-readout.success{ color:#34d399; border-left-color:#34d399; }
+.rtc-refresh-bay{ width:88px; height:88px; margin:0 auto 1.25rem; display:flex; flex-direction:column; align-items:center; justify-content:center; position:relative; }
+.rtc-refresh-head{ width:52px; height:46px; background:#3a0812; border:3px solid #7b0019; border-radius:13px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; animation:rtcRefreshIdle 4s infinite ease-in-out; }
+.rtc-refresh-head.frenzy{ animation:rtcRefreshIdle .08s infinite linear !important; }
+.rtc-refresh-node{ position:absolute; top:-13px; width:8px; height:8px; background:#eab308; border-radius:50%;
+  box-shadow:0 0 8px #eab308; transition:background-color .3s, box-shadow .3s; }
+.rtc-refresh-node.frenzy{ background:#ef4444; box-shadow:0 0 12px #ef4444; }
+.rtc-refresh-node.stable{ background:#34d399; box-shadow:0 0 8px #34d399; }
+.rtc-refresh-visor{ width:34px; height:10px; background:#0b0104; border-radius:99px; position:relative; overflow:hidden; margin-bottom:3px; }
+.rtc-refresh-laser{ position:absolute; width:8px; height:100%; background:#eab308; box-shadow:0 0 6px #eab308; left:-11px; animation:rtcRefreshSweep 1.2s linear infinite; }
+.rtc-refresh-badge{ font-size:.52rem; font-weight:900; color:#1a0209; background:#eab308; padding:1px 5px; border-radius:4px; letter-spacing:1px; margin-top:2px; }
+.rtc-refresh-track{ width:100%; height:7px; background:#0b0104; border-radius:99px; overflow:hidden; border:1px solid rgba(255,255,255,.08); }
+.rtc-refresh-fill{ height:100%; width:0%; background:linear-gradient(90deg,#7b0019,#c82020,#eab308); border-radius:99px; box-shadow:0 0 10px rgba(234,179,8,.35); transition:width .18s linear; }
+@keyframes rtcRefreshIdle{ 0%,100%{transform:translateY(0) rotate(0deg);} 25%{transform:translateY(-1.5px) rotate(-1deg);} 75%{transform:translateY(1.5px) rotate(1deg);} }
+@keyframes rtcRefreshShake{ 10%,90%{transform:translate3d(-2px,0,0);} 20%,80%{transform:translate3d(3px,-1px,0);} 30%,50%,70%{transform:translate3d(-5px,2px,0);} 40%,60%{transform:translate3d(5px,-2px,0);} }
+@keyframes rtcRefreshSweep{ 0%{left:-16px;} 100%{left:42px;} }
+
+/* ── Upload progress (per-file) — modern gradient bar ───────── */
+.rtc-upload-info{ display:flex; justify-content:space-between; align-items:center; margin-bottom:.35rem; }
+.rtc-upload-pct{ color:#7b0019; font-size:.72rem; font-weight:800; font-variant-numeric:tabular-nums; }
+.rtc-upload-track{ width:100%; height:8px; background:#f3f4f6; border-radius:99px; padding:1.5px; box-sizing:border-box;
+  box-shadow:inset 0 1px 2px rgba(0,0,0,.08); overflow:hidden; }
+.rtc-upload-fill{ height:100%; width:0%; border-radius:99px; background:linear-gradient(90deg,#7b0019,#c82020,#eab308);
+  background-size:200% 100%; animation:rtcUploadWave 2.2s ease infinite; transition:width .15s ease; }
+@keyframes rtcUploadWave{ 0%{background-position:0% 50%;} 50%{background-position:100% 50%;} 100%{background-position:0% 50%;} }
+
+/* ── Delete confirm modal — "deleting…" icon pulse ──────────── */
+@keyframes confirmIconPulse{ 0%{transform:scale(1);} 100%{transform:scale(1.08);} }
 </style>
 </head>
 <body class="min-h-screen">
@@ -634,6 +688,24 @@ body.rtc-cursor-active .rtc-cursor-dot{ width:8px; height:8px; }
 </div>
 <div id="help-overlay" class="hidden fixed inset-0 bg-black/30 z-30" onclick="closeHelpPanel()"></div>
 
+<!-- Refresh loader (robot mascot console) — shared by the "↻ Refresh"
+     buttons on Folders, an open folder's file list, and Documents. -->
+<div id="rtc-refresh-overlay">
+  <div class="rtc-refresh-wrap">
+    <div class="rtc-refresh-deck" id="rtc-refresh-deck">
+      <div class="rtc-refresh-readout" id="rtc-refresh-readout">Refreshing the data…</div>
+      <div class="rtc-refresh-bay">
+        <div class="rtc-refresh-node" id="rtc-refresh-node"></div>
+        <div class="rtc-refresh-head" id="rtc-refresh-head">
+          <div class="rtc-refresh-visor"><div class="rtc-refresh-laser"></div></div>
+          <div class="rtc-refresh-badge">RTC</div>
+        </div>
+      </div>
+      <div class="rtc-refresh-track"><div class="rtc-refresh-fill" id="rtc-refresh-fill"></div></div>
+    </div>
+  </div>
+</div>
+
 <!-- SSO transition — shown immediately when "Book a Room" is clicked,
      covers the brief token-generation gap before the browser navigates
      to the Booking System (same-tab, so this page is torn down right
@@ -654,6 +726,37 @@ const APP = { user:null, folders:[], files:[], posts:[], feedFilter:'all' };
 
 // SSO target — the RTC Booking System's public URL (rameshtrading.com.ph/book, book.html)
 const BOOKING_SYSTEM_URL = 'https://rameshtrading.com.ph/book';
+
+// ── SSO token prefetch ──────────────────────────────────────────
+// Tokens are single-use and expire in 2 minutes (SSO_TOKEN_TTL_MS on
+// the Booking System side). Generating one is a real Apps Script round
+// trip — instead of paying for that at the moment "Book a Room" is
+// clicked, quietly fetch one in the background as soon as someone's
+// logged in, and keep it fresh with a periodic refresh. If a fresh one
+// is sitting ready when they click, navigation is instant; if not
+// (timer hasn't fired yet, or it just got used), openBookingSystem()
+// falls back to generating one on the spot exactly like before.
+let _ssoTokenCache = null;
+let _ssoTokenFetchedAt = 0;
+let _ssoPrefetchTimer = null;
+const SSO_TOKEN_FRESH_MS = 100000; // stay under the real 120s TTL with buffer
+
+function prefetchSSOToken(){
+  if(!APP.user || !APP.user.email) return;
+  api('generateBookingSSOToken', {email:APP.user.email, role:APP.user.role}, res=>{
+    if(res && res.success){ _ssoTokenCache = res.token; _ssoTokenFetchedAt = Date.now(); }
+  }, ()=>{ /* silent — openBookingSystem() will just fetch on demand */ });
+}
+function startSSOPrefetch(){
+  prefetchSSOToken();
+  if(_ssoPrefetchTimer) clearInterval(_ssoPrefetchTimer);
+  _ssoPrefetchTimer = setInterval(prefetchSSOToken, 90000);
+}
+function stopSSOPrefetch(){
+  if(_ssoPrefetchTimer){ clearInterval(_ssoPrefetchTimer); _ssoPrefetchTimer = null; }
+  _ssoTokenCache = null;
+  _ssoTokenFetchedAt = 0;
+}
 let _forgotEmail = '';
 let _currentAuthTab = 'emp';
 
@@ -728,6 +831,17 @@ function api(action, params, onSuccess, onError) {
     });
 }
 
+// NOTE: an earlier version of the upload progress bar used an
+// XMLHttpRequest-based apiUploadWithProgress() helper here to get real
+// upload byte-progress. It broke uploads outright with a genuine
+// transport-level "Network error" against this Apps Script Web App
+// (which redirects through script.googleusercontent.com — XHR handled
+// that hop differently than fetch() does), even though every other
+// call in this file uses the same endpoint via api() below without
+// issue. Reverted to api()/fetch for uploads; the progress bar now
+// eases toward the real completion instead of tracking true bytes —
+// see doUploadAllFiles().
+
 // ── Helpers ─────────────────────────────────────────────────
 function toast(msg, type='info', dur=4500){
   const el=document.createElement('div');
@@ -738,6 +852,20 @@ function toast(msg, type='info', dur=4500){
 }
 function setLoading(s){document.getElementById('header-loader').classList.toggle('hidden',!s);}
 function esc(s){const d=document.createElement('div');d.appendChild(document.createTextNode(s));return d.innerHTML;}
+// Shared "modern" delete trigger — one small ghost icon button (SVG
+// trash, not an emoji/text link) reused everywhere a row can be
+// deleted (Folders, an open folder's files, Documents, Users), so the
+// delete affordance looks consistent instead of the old plain "🗑
+// Delete" text link. onclickAttr is the raw onclick JS as a string
+// (same as before, just wrapped in this markup); extraClass lets a
+// caller add e.g. "ml-1" for spacing without a second variant.
+function delBtnHtml(onclickAttr, extraClass){
+  return '<button onclick="'+onclickAttr+'" title="Delete" aria-label="Delete" '
+    +'class="inline-flex items-center justify-center w-7 h-7 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition '+(extraClass||'')+'">'
+    +'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
+    +'<path d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"/>'
+    +'</svg></button>';
+}
 function fmtDate(iso){if(!iso)return'—';try{const d=new Date(iso);return d.toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'})+' '+d.toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'});}catch{return iso;}}
 function fmtShort(iso){if(!iso)return'—';try{return new Date(iso).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'});}catch{return iso;}}
 function timeAgo(iso){const diff=Date.now()-new Date(iso).getTime(),m=Math.floor(diff/60000);if(m<1)return'just now';if(m<60)return`${m}m ago`;const h=Math.floor(m/60);if(h<24)return`${h}h ago`;const d=Math.floor(h/24);if(d<7)return`${d}d ago`;return fmtShort(iso);}
@@ -845,22 +973,86 @@ setInterval(()=>{const el=document.getElementById('header-time');if(el)el.textCo
 // ════════════════════════════════════════════════════════════
 // 🔲  CONFIRM MODAL
 // ════════════════════════════════════════════════════════════
+// onYes now receives a done(success, message) callback instead of
+// firing-and-forgetting — this is what lets the modal show a real
+// "Deleting…" animation that only turns into a checkmark once the
+// actual api() call has actually finished, not a fixed fake timer.
+// yesLabel-only callers (nothing calls done()) would just leave the
+// modal stuck animating, so every caller of showConfirm() was updated
+// to call done(res.success, res.message) from its api() callbacks.
 function showConfirm(msg, onYes, yesLabel) {
   var overlay = document.createElement('div');
   overlay.id = 'confirm-overlay';
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9000;display:flex;align-items:center;justify-content:center;';
-  overlay.innerHTML = '<div style="background:#fff;border-radius:16px;padding:24px 28px;max-width:360px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.25);animation:slideUp .18s ease;">'
-    + '<div style="font-size:28px;text-align:center;margin-bottom:12px;">⚠️</div>'
-    + '<p style="font-size:14px;color:#374151;text-align:center;font-weight:500;margin-bottom:20px;line-height:1.5;">' + msg + '</p>'
-    + '<div style="display:flex;gap:10px;">'
+  overlay.innerHTML = '<div id="confirm-card" style="background:#fff;border-radius:20px;padding:26px 26px;max-width:360px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.25);animation:slideUp .18s ease;text-align:center;">'
+    + '<div id="confirm-icon-wrap" style="width:60px;height:60px;border-radius:50%;background:#fef2f2;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;transition:background-color .3s ease;">'
+      + '<svg id="confirm-icon-trash" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"/></svg>'
+      + '<svg id="confirm-icon-check" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="m4.5 12.75 6 6 9-13.5"/></svg>'
+    + '</div>'
+    + '<p id="confirm-msg" style="font-size:14px;color:#374151;font-weight:500;margin-bottom:18px;line-height:1.5;">' + msg + '</p>'
+    + '<div id="confirm-progress-wrap" style="display:none;width:100%;background:#f3f4f6;height:7px;border-radius:99px;overflow:hidden;margin-bottom:18px;">'
+      + '<div id="confirm-progress-bar" style="width:0%;height:100%;background:linear-gradient(90deg,#dc2626,#f87171);border-radius:99px;transition:width .18s linear;"></div>'
+    + '</div>'
+    + '<div id="confirm-btns" style="display:flex;gap:10px;">'
     + '<button id="confirm-no" style="flex:1;padding:10px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:13px;font-weight:700;color:#6b7280;background:#fff;cursor:pointer;">Cancel</button>'
     + '<button id="confirm-yes" style="flex:1;padding:10px;border:none;border-radius:10px;font-size:13px;font-weight:700;color:#fff;background:#dc2626;cursor:pointer;">' + (yesLabel||'Delete') + '</button>'
     + '</div></div>';
   document.body.appendChild(overlay);
-  function close(){ overlay.remove(); }
+
+  var iconWrap     = overlay.querySelector('#confirm-icon-wrap');
+  var iconTrash    = overlay.querySelector('#confirm-icon-trash');
+  var iconCheck    = overlay.querySelector('#confirm-icon-check');
+  var msgEl        = overlay.querySelector('#confirm-msg');
+  var progressWrap = overlay.querySelector('#confirm-progress-wrap');
+  var progressBar  = overlay.querySelector('#confirm-progress-bar');
+  var btns         = overlay.querySelector('#confirm-btns');
+  var origMsg      = msg;
+  var fillTimer    = null;
+
+  function close(){ clearInterval(fillTimer); overlay.remove(); }
   overlay.querySelector('#confirm-no').onclick = close;
-  overlay.querySelector('#confirm-yes').onclick = function(){ close(); onYes(); };
   overlay.onclick = function(e){ if(e.target===overlay) close(); };
+
+  overlay.querySelector('#confirm-yes').onclick = function(){
+    btns.style.display = 'none';
+    progressWrap.style.display = 'block';
+    iconWrap.style.animation = 'confirmIconPulse .6s ease-in-out infinite alternate';
+    msgEl.textContent = 'Deleting…';
+    var p = 0;
+    fillTimer = setInterval(function(){
+      // Eases toward ~90% while the real request is in flight — never
+      // claims to know exact progress for a single-row delete, only
+      // the actual done() call below is allowed to reach 100%.
+      p = Math.min(90, p + (90 - p) * 0.15 + 2);
+      progressBar.style.width = p + '%';
+    }, 90);
+
+    function done(success, message){
+      clearInterval(fillTimer);
+      iconWrap.style.animation = '';
+      if (success) {
+        progressBar.style.width = '100%';
+        iconTrash.style.display = 'none';
+        iconCheck.style.display = 'block';
+        iconWrap.style.background = '#f0fdf4';
+        msgEl.textContent = message || 'Deleted successfully.';
+        msgEl.style.color = '#16a34a';
+        setTimeout(close, 1300);
+      } else {
+        progressWrap.style.display = 'none';
+        msgEl.innerHTML = origMsg;
+        msgEl.style.color = '#dc2626';
+        var closeBtn = document.createElement('button');
+        closeBtn.textContent = 'Close';
+        closeBtn.style.cssText = 'width:100%;padding:10px;border:none;border-radius:10px;font-size:13px;font-weight:700;color:#fff;background:#6b7280;cursor:pointer;';
+        closeBtn.onclick = close;
+        btns.innerHTML = '';
+        btns.appendChild(closeBtn);
+        btns.style.display = 'flex';
+      }
+    }
+    onYes(done);
+  };
 }
 
 // Styled replacement for the old native alert() shown after promoting
@@ -890,6 +1082,70 @@ function showTempPasswordModal(email, tempPassword){
     }
   };
   overlay.onclick = function(e){ if(e.target===overlay) close(); };
+}
+
+// ── Refresh Loader (robot mascot) ───────────────────────────
+// Shared by the "↻ Refresh" buttons on Folders, an open folder's file
+// list, and Documents. The fill animation eases toward ~92% while the
+// real request is in flight (never claims to know exact progress —
+// these are quick JSON fetches, not something with real byte-level
+// progress like an upload), then snaps to 100% and shows the success
+// line only once the actual data has arrived, and auto-dismisses
+// shortly after. Tapping Refresh again while one is already running
+// doesn't fire a second fetch — it just shakes the console.
+let _rtcRefreshBusy = false;
+let _rtcRefreshFillTimer = null;
+
+function rtcRefreshShow(){
+  const overlay=document.getElementById('rtc-refresh-overlay');
+  if(!overlay) return;
+  const readout=document.getElementById('rtc-refresh-readout');
+  const fill=document.getElementById('rtc-refresh-fill');
+  const node=document.getElementById('rtc-refresh-node');
+  const head=document.getElementById('rtc-refresh-head');
+  readout.classList.remove('success');
+  readout.textContent='Refreshing the data…';
+  node.classList.remove('stable'); head.classList.remove('stable');
+  fill.style.width='0%';
+  overlay.classList.add('show');
+  clearInterval(_rtcRefreshFillTimer);
+  let p=0;
+  _rtcRefreshFillTimer=setInterval(()=>{
+    p=Math.min(92, p+(92-p)*0.12+1);
+    fill.style.width=p+'%';
+  }, 90);
+}
+function rtcRefreshShake(){
+  const deck=document.getElementById('rtc-refresh-deck');
+  const node=document.getElementById('rtc-refresh-node');
+  const head=document.getElementById('rtc-refresh-head');
+  if(!deck) return;
+  deck.classList.add('shake'); node.classList.add('frenzy'); head.classList.add('frenzy');
+  setTimeout(()=>{ deck.classList.remove('shake'); node.classList.remove('frenzy'); head.classList.remove('frenzy'); }, 400);
+}
+function rtcRefreshDone(){
+  clearInterval(_rtcRefreshFillTimer);
+  const overlay=document.getElementById('rtc-refresh-overlay');
+  if(!overlay) return;
+  const readout=document.getElementById('rtc-refresh-readout');
+  const fill=document.getElementById('rtc-refresh-fill');
+  const node=document.getElementById('rtc-refresh-node');
+  const head=document.getElementById('rtc-refresh-head');
+  fill.style.width='100%';
+  readout.textContent='RTC Portal data is refreshed';
+  readout.classList.add('success');
+  node.classList.remove('frenzy'); head.classList.remove('frenzy');
+  node.classList.add('stable'); head.classList.add('stable');
+  setTimeout(()=>{ overlay.classList.remove('show'); }, 1200);
+}
+// fn: function(done) that performs the real refetch and calls done()
+// once it settles (success or error — either way the loader should
+// stop, this is just a refresh).
+function triggerRefresh(fn){
+  if(_rtcRefreshBusy){ rtcRefreshShake(); return; }
+  _rtcRefreshBusy=true;
+  rtcRefreshShow();
+  fn(()=>{ _rtcRefreshBusy=false; rtcRefreshDone(); });
 }
 
 // ════════════════════════════════════════════════════════════
@@ -1157,6 +1413,91 @@ function onLoginSuccess(user){
   saveSession(user);
   document.getElementById('auth-screen').classList.add('hidden');
   renderApp();
+  startSSOPrefetch();
+  prefetchAllAppData();
+}
+
+// ── Prefetch everything right after login (or session restore) ──────
+// Every tab and every folder used to fetch fresh only when tapped —
+// so the very first click on Dashboard/Folders/a specific folder/
+// Documents/Users always waited on a network round trip. This runs
+// once, right when the user lands in the app (fresh login OR the
+// "Back to Portal"/reload session-restore path — both go through
+// onLoginSuccess), and quietly warms the same localStorage SWR cache
+// that loadFeed()/loadFoldersList()/renderDashboard()/renderUsers()/
+// openFolderContents() already read from. By the time the user
+// actually taps a tab or opens a folder, the content is already
+// cached and paints instantly — each of those functions still
+// refreshes quietly behind it, so nothing goes stale.
+//
+// IMPORTANT — must stay SEQUENTIAL, one request in flight at a time,
+// not fired all at once. A first version of this fired getPosts +
+// getFolders + one getFiles PER FOLDER + getFiles(all) + getStats +
+// getAllUsers all in parallel, right on login — the same moment
+// startSSOPrefetch() above is also hitting this exact same Apps
+// Script web app for the "Book a Room" token. That burst of
+// simultaneous requests saturated Apps Script's per-user execution
+// slots (and the browser's ~6-connections-per-host cap), so
+// everything queued up behind everything else — Folders took forever
+// to paint, and "Book a Room" failed outright with "failed to fetch"
+// because its own request got stuck in the same jam. This queue runs
+// one call at a time with a short gap between each, and only starts
+// after a delay, so it never competes with the SSO token prefetch or
+// anything the user actively clicks right after logging in.
+function prefetchAllAppData(){
+  const isAdmin=APP.user.role==='Admin';
+  const queue=[];
+
+  queue.push(function(done){
+    api('getPosts', {limit:50, userEmail:APP.user.email}, res=>{
+      cacheSet('feed', {posts:res.posts||[], avatars:res.avatars||{}});
+      done();
+    }, done);
+  });
+
+  queue.push(function(done){
+    api('getFolders', {}, folders=>{
+      cacheSet('folders', folders);
+      // Warm every individual folder's file list too — this is the
+      // "loob ng bawat folder" part — so opening ANY folder is
+      // instant even if the Folders tab itself was never visited
+      // this session. Queued one at a time just like everything
+      // else here, not fired all together.
+      (folders||[]).forEach(f=>{
+        queue.push(function(done2){
+          api('getFiles', {folderId:f.folderId}, files=>{
+            cacheSet('folderFiles_'+f.folderId, files);
+            done2();
+          }, done2);
+        });
+      });
+      done();
+    }, done);
+  });
+
+  queue.push(function(done){
+    api('getFiles', {}, files=>{ cacheSet('files', files); done(); }, done);
+  });
+
+  queue.push(function(done){
+    api('getStats', {}, s=>{ cacheSet('stats', s); done(); }, done);
+  });
+
+  if(isAdmin){
+    queue.push(function(done){
+      api('getAllUsers', {}, users=>{ cacheSet('users', users); done(); }, done);
+    });
+  }
+
+  let i=0;
+  function runNext(){
+    if(i>=queue.length) return; // more jobs may still get pushed (folder loop above) — fine, we just stop when truly empty
+    const job=queue[i++];
+    job(()=>setTimeout(runNext, 250));
+  }
+  // Give the login transition and the SSO token prefetch a couple
+  // seconds of totally clear network/back-end capacity first.
+  setTimeout(runNext, 2500);
 }
 
 // ── SSO: Book a Room ────────────────────────────────────────
@@ -1166,7 +1507,21 @@ function onLoginSuccess(user){
 // A "Back to Portal" button on the Booking System side brings them
 // back to this same tab; the loadSession() check below on page load
 // then logs them straight back in here too, no password re-entry either.
+//
+// Fast path: if startSSOPrefetch() already has a fresh token sitting
+// ready (the common case — it's been quietly refreshing in the
+// background since login), skip the token-generation round trip
+// entirely and navigate immediately. Falls back to the original
+// generate-then-navigate flow otherwise.
 function openBookingSystem(){
+  const tokenFresh = _ssoTokenCache && (Date.now() - _ssoTokenFetchedAt) < SSO_TOKEN_FRESH_MS;
+  if(tokenFresh){
+    const url=BOOKING_SYSTEM_URL+'?ssoToken='+encodeURIComponent(_ssoTokenCache);
+    _ssoTokenCache=null; // single-use on the Booking System side — don't offer it again
+    window.location.href=url;
+    return;
+  }
+
   const link=document.querySelector('[data-nav="book-room"]');
   const original=link?link.innerHTML:'';
   if(link) link.innerHTML='<span>⏳</span><span>Opening…</span>';
@@ -1192,6 +1547,7 @@ function openBookingSystem(){
 // ── Logout ───────────────────────────────────────────────────
 function doLogout(){
   APP.user=null;
+  stopSSOPrefetch();
   clearSession();
   document.getElementById('app').classList.add('hidden');
   document.getElementById('auth-screen').classList.remove('hidden');
@@ -1804,8 +2160,11 @@ function doAddComment(postId){
   api('addComment', {postId:postId,authorEmail:APP.user.email,authorName:APP.user.fullName,text:text,parentCommentId:''}, res=>{input.disabled=false;if(res.success)loadComments(postId);else{toast(res.message,'error');input.value=text;}}, err=>{input.disabled=false;toast(err.message,'error');input.value=text;});
 }
 function doDeleteComment(commentId,postId){
-  showConfirm('Delete this comment?', function(){
-    api('deleteComment', {commentId:commentId,adminEmail:APP.user.email}, res=>{if(res.success)loadComments(postId);else toast(res.message,'error');}, err=>toast(err.message,'error'));
+  showConfirm('Delete this comment?', function(done){
+    api('deleteComment', {commentId:commentId,adminEmail:APP.user.email}, res=>{
+        if(res.success) loadComments(postId);
+        done(res.success, res.message);
+      }, err=>{ done(false, err.message); });
   });
 }
 function doTogglePin(postId,newState){
@@ -1813,9 +2172,11 @@ function doTogglePin(postId,newState){
   api('togglePin', {postId:postId,newPinState:newState,adminEmail:APP.user.email}, res=>{setLoading(false);if(res.success){toast(newState?'Post pinned.':'Post unpinned.','success');loadFeed();}else toast(res.message,'error');}, err=>{setLoading(false);toast(err.message,'error');});
 }
 function doDeletePost(postId){
-  showConfirm('Delete this post and all its comments?', function(){
-    setLoading(true);
-    api('deletePost', {postId:postId,adminEmail:APP.user.email}, res=>{setLoading(false);toast(res.message,res.success?'success':'error');if(res.success)document.getElementById('post-'+postId)?.remove();}, err=>{setLoading(false);toast(err.message,'error');});
+  showConfirm('Delete this post and all its comments?', function(done){
+    api('deletePost', {postId:postId,adminEmail:APP.user.email}, res=>{
+        if(res.success) document.getElementById('post-'+postId)?.remove();
+        done(res.success, res.message);
+      }, err=>{ done(false, err.message); });
   });
 }
 
@@ -1824,10 +2185,8 @@ function doDeletePost(postId){
 // 📊  DASHBOARD
 // ════════════════════════════════════════════════════════════
 function renderDashboard(){
-  setLoading(true);
-  api('getStats', {}, s=>{
-      setLoading(false);
-      document.getElementById('page-content').innerHTML=`
+  const paint=(s)=>{
+    document.getElementById('page-content').innerHTML=`
         <div class="fade-in space-y-5">
           <div class="grid grid-cols-2 lg:grid-cols-4 gap-4" id="dash-tiles">
             ${[{i:'📁',l:'Folders',v:s.totalFolders,c:'text-maroon-700'},{i:'📄',l:'Files',v:s.totalFiles,c:'text-blue-600'},
@@ -1849,8 +2208,18 @@ function renderDashboard(){
             </div>
           </div>
         </div>`;
-      loadPendingApprovalsTile();
-    }, err=>{setLoading(false);toast(err.message,'error');});
+    loadPendingApprovalsTile();
+  };
+  // SWR: paint instantly from whatever prefetchAllAppData() (or a
+  // previous visit) already cached, no spinner wait, then quietly
+  // refresh behind it — same pattern as loadFeed()/loadFoldersList().
+  const cached=cacheGet('stats');
+  if(cached){ paint(cached); } else { setLoading(true); }
+  api('getStats', {}, s=>{
+      setLoading(false);
+      cacheSet('stats', s);
+      paint(s);
+    }, err=>{setLoading(false);if(!cached)toast(err.message,'error');});
 }
 
 // Adds a "Pending Approvals" tile to the Dashboard when there's at least
@@ -1888,7 +2257,10 @@ function renderFolders(){
         </div>
       </div>`:''}
       <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-        <h2 class="text-sm font-bold text-gray-700 mb-3">${isAdmin?'All Folders':'📁 Company Folders'}</h2>
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-sm font-bold text-gray-700">${isAdmin?'All Folders':'📁 Company Folders'}</h2>
+          <button onclick="triggerRefresh(done=>loadFoldersList(done))" class="text-xs text-maroon-700 font-semibold hover:underline">↻ Refresh</button>
+        </div>
         <div id="folders-list">${shimmerList(3)}</div>
       </div>
     </div>`;
@@ -1908,7 +2280,7 @@ function renderFoldersTable(folders){
       +'<td class="py-2.5 pr-4 text-xs text-gray-400" onclick="openFolderContents(\''+esc(f.folderId)+'\',\''+esc(f.folderName)+'\')">'+fmtShort(f.createdAt)+'</td>'
       +(isAdmin?'<td class="py-2.5 text-right">'
         +'<button onclick="event.stopPropagation();openFolderUpload(\''+esc(f.folderId)+'\',\''+esc(f.folderName)+'\')" class="text-xs text-maroon-600 hover:text-maroon-800 font-semibold mr-3">📤 Upload</button>'
-        +'<button onclick="event.stopPropagation();doDeleteFolder(\''+esc(f.folderId)+'\',\''+esc(f.folderName)+'\')" class="text-xs text-red-400 hover:text-red-600 font-medium">🗑 Delete</button>'
+        +delBtnHtml('event.stopPropagation();doDeleteFolder(\''+esc(f.folderId)+'\',\''+esc(f.folderName)+'\')')
         +'</td>':'')
       +'</tr>';
   }).join('');
@@ -1918,13 +2290,14 @@ function renderFoldersTable(folders){
     +(isAdmin?'<th class="pb-2 text-right">Actions</th>':'')
     +'</tr></thead><tbody>'+rows+'</tbody></table></div>';
 }
-function loadFoldersList(){
+function loadFoldersList(done){
   const cached=cacheGet('folders');
   if(cached) renderFoldersTable(cached);
   api('getFolders', {}, folders=>{
       cacheSet('folders', folders);
       renderFoldersTable(folders);
-    }, err=>{if(!cached)toast(err.message,'error');});
+      if(done) done();
+    }, err=>{if(!cached)toast(err.message,'error'); if(done) done();});
 }
 function doCreateFolder(){
   const input=document.getElementById('folder-name-input');const name=input.value.trim();
@@ -1934,9 +2307,11 @@ function doCreateFolder(){
 }
 
 function doDeleteFolder(folderId,folderName){
-  showConfirm('Delete folder "<b>'+esc(folderName)+'</b>" and all its files?', function(){
-    setLoading(true);
-    api('deleteFolder', {folderId:folderId,adminEmail:APP.user.email}, res=>{setLoading(false);toast(res.message,res.success?'success':'error');if(res.success)loadFoldersList();}, err=>{setLoading(false);toast(err.message,'error');});
+  showConfirm('Delete folder "<b>'+esc(folderName)+'</b>" and all its files?', function(done){
+    api('deleteFolder', {folderId:folderId,adminEmail:APP.user.email}, res=>{
+        if(res.success) loadFoldersList();
+        done(res.success, res.message);
+      }, err=>{ done(false, err.message); });
   });
 }
 function openFolderUpload(folderId,folderName){
@@ -1947,7 +2322,8 @@ let _preselectedFolder=null;
 
 function openFolderContents(folderId,folderName){
   const isAdmin=APP.user.role==='Admin';
-  const EI={pdf:'📕',doc:'📘',docx:'📘',xls:'📗',xlsx:'📗',ppt:'📙',pptx:'📙',png:'🖼️',jpg:'🖼️',jpeg:'🖼️',txt:'📝'};
+  const cacheKey='folderFiles_'+folderId;
+  const cached=cacheGet(cacheKey);
   document.getElementById('page-content').innerHTML=`
     <div class="fade-in space-y-5 max-w-3xl">
       <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
@@ -1955,14 +2331,37 @@ function openFolderContents(folderId,folderName){
           <button onclick="renderFolders()" class="flex items-center gap-1 text-sm text-maroon-700 font-semibold hover:underline">← Folders</button>
           <span class="text-gray-200 hidden sm:inline">|</span>
           <h2 class="text-sm font-bold text-gray-700 flex items-center gap-1.5">📁 <span>${esc(folderName)}</span></h2>
-          ${isAdmin?`<button onclick="openFolderUpload('${esc(folderId)}','${esc(folderName)}')" class="ml-auto px-4 py-2 bg-maroon-700 text-white text-xs font-bold rounded-xl hover:bg-maroon-800 transition">📤 Upload Here</button>`:''}
+          <button onclick="triggerRefresh(done=>refreshFolderContents('${esc(folderId)}',${isAdmin},done))" class="ml-auto text-xs text-maroon-700 font-semibold hover:underline">↻ Refresh</button>
+          ${isAdmin?`<button onclick="openFolderUpload('${esc(folderId)}','${esc(folderName)}')" class="px-4 py-2 bg-maroon-700 text-white text-xs font-bold rounded-xl hover:bg-maroon-800 transition">📤 Upload Here</button>`:''}
         </div>
-        <div id="folder-contents">${shimmerList(4)}</div>
+        <div id="folder-contents">${cached?'':shimmerList(4)}</div>
       </div>
     </div>`;
-  setLoading(true);
+  // SWR: if prefetchAllAppData() already warmed this folder's file list
+  // (it prefetches every folder right after login), paint it instantly
+  // — same pattern as loadFeed()/loadFoldersList(). Still refreshes
+  // quietly behind it in case a file was added/removed since prefetch.
+  if(cached) renderFolderContentsTable(cached, isAdmin);
+  else setLoading(true);
   api('getFiles', {folderId:folderId}, function(files){
       setLoading(false);
+      cacheSet(cacheKey, files);
+      renderFolderContentsTable(files, isAdmin);
+    }, function(err){setLoading(false);if(!cached)toast(err.message,'error');});
+}
+// Used by the "↻ Refresh" button while already viewing a folder — just
+// re-fetches this one folder's files and repaints the table in place,
+// no shimmer/re-render of the whole header (the robot loader overlay
+// already communicates that a refresh is happening).
+function refreshFolderContents(folderId, isAdmin, done){
+  api('getFiles', {folderId:folderId}, function(files){
+      cacheSet('folderFiles_'+folderId, files);
+      renderFolderContentsTable(files, isAdmin);
+      if(done) done();
+    }, function(err){ toast(err.message,'error'); if(done) done(); });
+}
+function renderFolderContentsTable(files, isAdmin){
+      const EI={pdf:'📕',doc:'📘',docx:'📘',xls:'📗',xlsx:'📗',ppt:'📙',pptx:'📙',png:'🖼️',jpg:'🖼️',jpeg:'🖼️',txt:'📝'};
       const el=document.getElementById('folder-contents');if(!el)return;
       if(!files.length){el.innerHTML='<p class="text-sm text-gray-400 text-center py-8">No files in this folder yet.</p>';return;}
       var rows=files.map(function(f){
@@ -1975,7 +2374,7 @@ function openFolderContents(folderId,folderName){
           +'<td class="py-2.5 pr-4 text-xs text-gray-400">'+fmtShort(f.uploadedAt)+'</td>'
           +'<td class="py-2.5 text-right">'
           +'<button onclick="previewFile(\''+f.fileId+'\',\''+esc(f.fileName)+'\')" class="text-xs text-maroon-600 hover:text-maroon-800 font-semibold mr-2">👁 Preview</button>'
-          +(isAdmin?'<button onclick="doDeleteFile(\''+esc(f.fileId)+'\',\''+esc(f.fileName)+'\')" class="text-xs text-red-400 hover:text-red-600 font-medium">🗑</button>':'')
+          +(isAdmin?delBtnHtml('doDeleteFile(\''+esc(f.fileId)+'\',\''+esc(f.fileName)+'\')'):'')
           +'</td></tr>';
       }).join('');
       el.innerHTML='<div class="overflow-x-auto"><table class="w-full text-sm">'
@@ -1985,7 +2384,6 @@ function openFolderContents(folderId,folderName){
         +'<th class="pb-2 pr-4 text-left">Date</th>'
         +'<th class="pb-2 text-right">Actions</th>'
         +'</tr></thead><tbody>'+rows+'</tbody></table></div>';
-    }, function(err){setLoading(false);toast(err.message,'error');});
 }
 
 
@@ -2021,13 +2419,14 @@ function renderUpload(){
                onchange="onFilesSelected(this.files)"/>
         <div id="file-list" class="hidden space-y-2"></div>
         <div id="upload-overall-progress" class="hidden">
-          <div class="flex items-center justify-between mb-1">
+          <div class="rtc-upload-info">
             <span class="text-xs font-semibold text-gray-600" id="upload-progress-label">Uploading…</span>
-            <span class="text-xs text-gray-400" id="upload-progress-count"></span>
+            <span class="rtc-upload-pct" id="upload-progress-pct">0%</span>
           </div>
-          <div class="w-full bg-gray-100 rounded-full h-2">
-            <div id="upload-progress-bar" class="bg-maroon-700 h-2 rounded-full transition-all duration-300" style="width:0%"></div>
+          <div class="rtc-upload-track">
+            <div id="upload-progress-bar" class="rtc-upload-fill" style="width:0%"></div>
           </div>
+          <div class="text-right mt-1"><span class="text-xs text-gray-400" id="upload-progress-count"></span></div>
         </div>
         <div class="flex gap-2">
           <button onclick="clearAllFiles()" id="clear-btn" class="hidden px-4 py-2.5 border border-gray-200 text-sm text-gray-500 font-semibold rounded-xl hover:bg-gray-50 transition">🗑 Clear All</button>
@@ -2035,18 +2434,31 @@ function renderUpload(){
         </div>
       </div>
     </div>`;
-  api('getFolders', {}, folders=>{
-      APP.folders=folders;
-      const sel=document.getElementById('upload-folder-select');if(!sel)return;
-      sel.innerHTML=!folders.length?'<option value="">No folders yet.</option>':
-        '<option value="">— Select a folder —</option>'+folders.map(f=>`<option value="${esc(f.folderId)}" data-name="${esc(f.folderName)}">${esc(f.folderName)}</option>`).join('');
-      // Auto-select pre-selected folder if coming from Folders page
-      if(pre&&pre.id){
-        for(let i=0;i<sel.options.length;i++){
-          if(sel.options[i].value===pre.id){sel.selectedIndex=i;break;}
-        }
+  const paintFolderOptions=folders=>{
+    APP.folders=folders;
+    const sel=document.getElementById('upload-folder-select');if(!sel)return;
+    const prevValue=sel.value;
+    sel.innerHTML=!folders.length?'<option value="">No folders yet.</option>':
+      '<option value="">— Select a folder —</option>'+folders.map(f=>`<option value="${esc(f.folderId)}" data-name="${esc(f.folderName)}">${esc(f.folderName)}</option>`).join('');
+    // Auto-select pre-selected folder if coming from Folders page,
+    // otherwise keep whatever the user had already picked (relevant
+    // when this repaints from the background refresh below).
+    const wantId=(pre&&pre.id)||prevValue;
+    if(wantId){
+      for(let i=0;i<sel.options.length;i++){
+        if(sel.options[i].value===wantId){sel.selectedIndex=i;break;}
       }
-    }, err=>toast(err.message,'error'));
+    }
+  };
+  // SWR: paint the folder dropdown instantly from cache (warmed by
+  // prefetchAllAppData() on login) so Upload File doesn't sit on
+  // "Loading…" — then quietly refresh in the background.
+  const cachedFolders=cacheGet('folders');
+  if(cachedFolders) paintFolderOptions(cachedFolders);
+  api('getFolders', {}, folders=>{
+      cacheSet('folders', folders);
+      paintFolderOptions(folders);
+    }, err=>{if(!cachedFolders)toast(err.message,'error');});
 }
 
 function handleDrop(e){
@@ -2089,7 +2501,7 @@ function renderFileList(){
         <div class="text-xs font-semibold text-gray-800 truncate">${esc(f.name)}</div>
         <div class="text-xs text-gray-400">${size} · ${ext.toUpperCase()}</div>
       </div>
-      <div id="file-status-${i}" class="text-xs font-semibold text-gray-400 shrink-0">Pending</div>
+      <div id="file-status-${i}" class="text-xs font-semibold text-gray-400 shrink-0 flex items-center gap-1.5">Pending</div>
       <button onclick="removeFile(${i})" id="file-remove-${i}" class="text-gray-300 hover:text-red-400 text-sm shrink-0 transition">✕</button>
     </div>`;
   }).join('');
@@ -2126,10 +2538,21 @@ function doUploadAllFiles(){
   const progressBar=document.getElementById('upload-progress-bar');
   const progressLabel=document.getElementById('upload-progress-label');
   const progressCount=document.getElementById('upload-progress-count');
+  const progressPct=document.getElementById('upload-progress-pct');
   progressWrap.classList.remove('hidden');
 
   const total=_selectedFiles.length;
   let current=0, done=0, failed=0;
+  let fileFillTimer=null;
+
+  // Blends "files fully finished" with "how far the file in flight has
+  // gotten" into one overall percentage, so the bar moves smoothly
+  // across the whole batch instead of jumping in total-sized chunks.
+  function setOverallProgress(fileIndex, fileFraction){
+    const pct=Math.round(((fileIndex+fileFraction)/total)*100);
+    progressBar.style.width=pct+'%';
+    progressPct.textContent=pct+'%';
+  }
 
   function uploadNext(){
     if(current>=total){
@@ -2137,13 +2560,24 @@ function doUploadAllFiles(){
       btn.disabled=false;
       progressLabel.textContent=`Done! ${done} uploaded${failed?`, ${failed} failed`:''}`;
       progressCount.textContent='';
+      progressPct.textContent='100%';
       if(done>0) toast(`${done} file${done>1?'s':''} uploaded successfully.`,'success');
       if(failed>0) toast(`${failed} file${failed>1?'s':''} failed to upload.`,'error');
+      // Uploads landed — warm the caches that Documents/Folders/
+      // Dashboard read from so those tabs show the new file(s)
+      // immediately instead of the user waiting through a fresh load.
+      if(done>0){
+        refreshDocuments(APP.user.role==='Admin');
+        loadFoldersList();
+        refreshFolderContents(folderId, APP.user.role==='Admin');
+        api('getStats', {}, s=>cacheSet('stats', s), ()=>{});
+      }
       setTimeout(()=>{
         _selectedFiles=[];
         document.getElementById('file-input').value='';
         progressWrap.classList.add('hidden');
         progressBar.style.width='0%';
+        progressPct.textContent='0%';
         renderFileList();
       },2500);
       return;
@@ -2153,11 +2587,25 @@ function doUploadAllFiles(){
     const file=_selectedFiles[i];
     const statusEl=document.getElementById('file-status-'+i);
     const removeEl=document.getElementById('file-remove-'+i);
-    if(statusEl) statusEl.innerHTML='<span class="text-blue-500">Uploading…</span>';
+    if(statusEl) statusEl.innerHTML='<span class="text-blue-500">⏳</span><span class="text-blue-500" id="file-pct-'+i+'">0%</span>';
     if(removeEl) removeEl.classList.add('hidden');
     progressLabel.textContent=`Uploading "${file.name}"…`;
     progressCount.textContent=`${i+1} / ${total}`;
-    progressBar.style.width=((i+1)/total*100)+'%';
+    setOverallProgress(i, 0);
+
+    // Eases toward ~90% while the real upload is in flight — a browser
+    // fetch() body upload has no progress event, so this never claims
+    // to know the true byte count. Only the real api() response below
+    // is allowed to snap it to 100%, same honesty rule as the refresh
+    // loader and the delete confirm modal.
+    const pctEl=document.getElementById('file-pct-'+i);
+    let frac=0;
+    clearInterval(fileFillTimer);
+    fileFillTimer=setInterval(()=>{
+      frac=Math.min(0.9, frac+(0.9-frac)*0.12+0.015);
+      if(pctEl) pctEl.textContent=Math.round(frac*100)+'%';
+      setOverallProgress(i, frac);
+    }, 120);
 
     const reader=new FileReader();
     reader.onload=function(e){
@@ -2170,9 +2618,12 @@ function doUploadAllFiles(){
           folderName : folderName,
           uploadedBy : APP.user.email
         }}, function(res){
+          clearInterval(fileFillTimer);
           current++;
           if(res && res.success){
             done++;
+            if(pctEl) pctEl.textContent='100%';
+            setOverallProgress(i+1, 0);
             if(statusEl) statusEl.innerHTML='<span class="text-green-600">✅ Done</span>';
           } else {
             failed++;
@@ -2182,6 +2633,7 @@ function doUploadAllFiles(){
           }
           uploadNext();
         }, function(err){
+          clearInterval(fileFillTimer);
           current++;
           failed++;
           const msg=(err&&err.message)||err||'Unknown error';
@@ -2191,6 +2643,7 @@ function doUploadAllFiles(){
         });
     };
     reader.onerror=function(){
+      clearInterval(fileFillTimer);
       current++;failed++;
       if(statusEl) statusEl.innerHTML='<span class="text-red-500">❌ Read Error</span>';
       toast('Could not read file: '+file.name,'error');
@@ -2223,24 +2676,35 @@ function renderDocuments(){
           <button id="view-grid" onclick="setDocView('grid')" class="p-2 rounded-lg bg-maroon-700 text-white text-xs">⊞</button>
           <button id="view-list" onclick="setDocView('list')" class="p-2 rounded-lg bg-gray-100 text-gray-600 text-xs">☰</button>
         </div>
+        <button onclick="triggerRefresh(done=>refreshDocuments(${isAdmin},done))" class="text-xs text-maroon-700 font-semibold hover:underline shrink-0">↻ Refresh</button>
       </div>
       <div class="flex items-center px-1"><span class="text-xs text-gray-400" id="docs-count">Loading…</span></div>
       <div id="docs-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">${shimmerCards(8)}</div>
     </div>`;
-  const applyFiles=files=>{
-    APP.files=files;
-    const ff=document.getElementById('folder-filter');
-    if(ff){const flds=[...new Map(files.map(f=>[f.folderId,f])).values()];ff.innerHTML='<option value="">All Folders</option>'+flds.map(f=>`<option value="${esc(f.folderId)}">${esc(f.folderName)}</option>`).join('');}
-    renderDocCards(files,isAdmin);
-  };
   const cached=cacheGet('files');
-  if(cached) applyFiles(cached);
+  if(cached) applyDocumentFiles(cached, isAdmin);
   else setLoading(true);
   api('getFiles', {}, files=>{
       setLoading(false);
       cacheSet('files', files);
-      applyFiles(files);
+      applyDocumentFiles(files, isAdmin);
     }, err=>{setLoading(false);if(!cached)toast(err.message,'error');});
+}
+// Shared by renderDocuments()'s initial load and the "↻ Refresh" button
+// (refreshDocuments below) — rebuilds the folder filter dropdown and
+// repaints the file cards from whatever file list it's given.
+function applyDocumentFiles(files, isAdmin){
+  APP.files=files;
+  const ff=document.getElementById('folder-filter');
+  if(ff){const flds=[...new Map(files.map(f=>[f.folderId,f])).values()];ff.innerHTML='<option value="">All Folders</option>'+flds.map(f=>`<option value="${esc(f.folderId)}">${esc(f.folderName)}</option>`).join('');}
+  renderDocCards(files,isAdmin);
+}
+function refreshDocuments(isAdmin, done){
+  api('getFiles', {}, files=>{
+      cacheSet('files', files);
+      applyDocumentFiles(files, isAdmin);
+      if(done) done();
+    }, err=>{ toast(err.message,'error'); if(done) done(); });
 }
 function setDocView(m){_docView=m;document.getElementById('view-grid').className='p-2 rounded-lg text-xs '+(m==='grid'?'bg-maroon-700 text-white':'bg-gray-100 text-gray-600');document.getElementById('view-list').className='p-2 rounded-lg text-xs '+(m==='list'?'bg-maroon-700 text-white':'bg-gray-100 text-gray-600');filterDocuments(document.getElementById('doc-search')?.value||'');}
 function filterDocuments(q){const fId=document.getElementById('folder-filter')?.value||'';const isAdmin=APP.user.role==='Admin';let files=APP.files;if(fId)files=files.filter(f=>f.folderId===fId);if(q.trim())files=files.filter(f=>f.fileName.toLowerCase().includes(q.toLowerCase())||f.folderName.toLowerCase().includes(q.toLowerCase()));renderDocCards(files,isAdmin);}
@@ -2259,7 +2723,7 @@ function renderDocCards(files,isAdmin){
           <div class="text-xs text-gray-400 mt-0.5">${fmtShort(f.uploadedAt)}</div></div>
         <div class="mt-3 flex gap-1.5">
           <button onclick="previewFile('${f.fileId}','${esc(f.fileName)}')" class="flex-1 py-2 bg-maroon-700 text-white text-xs font-bold rounded-lg text-center hover:bg-maroon-800 transition">👁 Preview</button>
-          ${isAdmin?`<button onclick="doDeleteFile('${esc(f.fileId)}','${esc(f.fileName)}')" class="p-2 text-red-400 hover:bg-red-50 rounded-lg text-xs">🗑</button>`:''}
+          ${isAdmin?delBtnHtml(`doDeleteFile('${esc(f.fileId)}','${esc(f.fileName)}')`):''}
         </div>
       </div>`;}).join('');
   } else {
@@ -2273,25 +2737,26 @@ function renderDocCards(files,isAdmin){
           <td class="px-4 py-2.5 text-xs text-gray-400">${fmtShort(f.uploadedAt)}</td>
           <td class="px-4 py-2.5 text-right">
             <button onclick="previewFile('${f.fileId}','${esc(f.fileName)}')" class="px-3 py-1 bg-maroon-700 text-white text-xs font-semibold rounded-lg hover:bg-maroon-800 transition">👁 Preview</button>
-            ${isAdmin?`<button onclick="doDeleteFile('${esc(f.fileId)}','${esc(f.fileName)}')" class="ml-1 px-2 py-1 text-red-400 hover:bg-red-50 rounded-lg text-xs">🗑</button>`:''}
+            ${isAdmin?delBtnHtml(`doDeleteFile('${esc(f.fileId)}','${esc(f.fileName)}')`,'ml-1'):''}
           </td>
         </tr>`;}).join('')}</tbody></table></div>`;
   }
 }
 function doDeleteFile(fileId,fileName){
-  showConfirm('Delete "<b>'+esc(fileName)+'</b>"?', function(){
-    setLoading(true);
+  showConfirm('Delete "<b>'+esc(fileName)+'</b>"?', function(done){
     api('deleteFile', {fileId:fileId,adminEmail:APP.user.email}, res=>{
-        setLoading(false);toast(res.message,res.success?'success':'error');
         if(res.success){
           // Folder contents view: remove row directly
           const fcEl=document.getElementById('folder-contents');
-          if(fcEl){ const row=fcEl.querySelector('[onclick*="'+fileId+'"]');if(row)row.closest('tr')?.remove(); return; }
-          // Documents view: filter and redraw
-          APP.files=APP.files.filter(f=>f.fileId!==fileId);
-          renderDocCards(APP.files,APP.user.role==='Admin');
+          if(fcEl){ const row=fcEl.querySelector('[onclick*="'+fileId+'"]');if(row)row.closest('tr')?.remove(); }
+          else {
+            // Documents view: filter and redraw
+            APP.files=APP.files.filter(f=>f.fileId!==fileId);
+            renderDocCards(APP.files,APP.user.role==='Admin');
+          }
         }
-      }, err=>{setLoading(false);toast(err.message,'error');});
+        done(res.success, res.message);
+      }, err=>{ done(false, err.message); });
   });
 }
 
@@ -2329,17 +2794,26 @@ function renderLogs(){
 // 👥  USERS
 // ════════════════════════════════════════════════════════════
 function renderUsers(){
+  const cached=cacheGet('users');
   document.getElementById('page-content').innerHTML=`
     <div class="fade-in max-w-4xl"><div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
       <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
         <h2 class="font-bold text-sm text-gray-700">👥 User Management</h2>
         <button onclick="renderUsers()" class="text-xs text-maroon-700 font-semibold hover:underline">↻ Refresh</button>
       </div>
-      <div id="users-wrap" class="p-4">${shimmerList(4)}</div>
+      <div id="users-wrap" class="p-4">${cached?'':shimmerList(4)}</div>
     </div></div>`;
-  setLoading(true);
+  // SWR: paint instantly from the prefetched/cached list if we have
+  // one, then quietly refresh behind it — same pattern as loadFeed().
+  if(cached) renderUsersTable(cached); else setLoading(true);
   api('getAllUsers', {}, users=>{
-      setLoading(false);const el=document.getElementById('users-wrap');if(!el)return;
+      setLoading(false);
+      cacheSet('users', users);
+      renderUsersTable(users);
+    }, err=>{setLoading(false);if(!cached)toast(err.message,'error');});
+}
+function renderUsersTable(users){
+      const el=document.getElementById('users-wrap');if(!el)return;
       if(!users.length){el.innerHTML='<p class="text-sm text-gray-400 text-center py-8">No users yet.</p>';return;}
       el.innerHTML=`<div class="overflow-x-auto"><table class="w-full text-sm">
         <thead><tr class="text-xs text-gray-400 uppercase tracking-wide border-b">
@@ -2373,11 +2847,10 @@ function renderUsers(){
                 <option value="Booking System only" ${u.scope==='Booking System only'?'selected':''}>Booking only</option>
                 <option value="Employee Portal only" ${u.scope==='Employee Portal only'?'selected':''}>Portal only</option>
               </select>`:''}
-              <button onclick="doDeleteUser('${esc(u.email)}')" title="Delete user" class="text-xs px-2 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50">🗑</button>
+              ${delBtnHtml(`doDeleteUser('${esc(u.email)}')`)}
             </div>`:'<span class="text-xs text-gray-300">—</span>'))}
           </td>
         </tr>`).join('')}</tbody></table></div>`;
-    }, err=>{setLoading(false);toast(err.message,'error');});
 }
 function doApproveUser(email){
   setLoading(true);
@@ -2407,13 +2880,11 @@ function doUpdateScope(email,scope){
     }, err=>{setLoading(false);toast(err.message,'error');});
 }
 function doDeleteUser(email){
-  showConfirm('Delete <b>'+esc(email)+'</b>? This permanently removes their account — they will no longer be able to log in.', function(){
-    setLoading(true);
+  showConfirm('Delete <b>'+esc(email)+'</b>? This permanently removes their account — they will no longer be able to log in.', function(done){
     api('deleteUser', {targetEmail:email,adminEmail:APP.user.email}, res=>{
-        setLoading(false);
-        toast(res.message,res.success?'success':'error');
         if(res.success) renderUsers();
-      }, err=>{setLoading(false);toast(err.message,'error');});
+        done(res.success, res.message);
+      }, err=>{ done(false, err.message); });
   }, 'Delete');
 }
 
